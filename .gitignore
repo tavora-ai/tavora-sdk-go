@@ -1,0 +1,14 @@
+# Binaries and test artifacts
+*.test
+*.out
+coverage.out
+
+# Editors
+.idea/
+.vscode/
+.DS_Store
+
+# Local env
+.env
+.env.*
+!.env.example
