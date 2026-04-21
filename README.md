@@ -8,7 +8,7 @@ auditable across tenants. See [docs.tavora.ai](https://docs.tavora.ai).
 ## Installation
 
 ```sh
-go get github.com/valiro-ai/tavora-sdk-go
+go get github.com/tavora-ai/tavora-sdk-go
 ```
 
 ## Quickstart
@@ -21,7 +21,7 @@ import (
     "fmt"
     "log"
 
-    tavora "github.com/valiro-ai/tavora-sdk-go"
+    tavora "github.com/tavora-ai/tavora-sdk-go"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-module github.com/valiro-ai/tavora-sdk-go
+module github.com/tavora-ai/tavora-sdk-go
 
 go 1.25.0
 
