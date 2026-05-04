@@ -70,14 +70,15 @@ self-contained Go module — `cd examples/<name> && go run .`.
 | [`research-assistant`](./examples/research-assistant) | Single-turn agent with `search` + `list_stores` tools |
 | [`knowledge-base`](./examples/knowledge-base) | Document upload, store management, semantic search |
 | [`tasklist`](./examples/tasklist) | End-to-end product template — local SQLite app exposes its domain to a Tavora agent via an MCP server registered through `CreateMCPServer` |
-| [`eval-ci`](./examples/eval-ci) | CI-style eval runner — gate promotions on suite pass rate |
 | [`rag-eval`](./examples/rag-eval), [`rag-eval-formats`](./examples/rag-eval-formats), [`rag-eval-judge`](./examples/rag-eval-judge) | RAG quality measurement using `Search` + `ChatCompletion` + LLM-judge scoring |
 | [`e2e`](./examples/e2e) | Live-server integration tests using `testscript` — gates on `TAVORA_URL` + `TAVORA_API_KEY` env vars |
 
-For a fully-featured interactive chat surface, see the
-[`tavora-tui`](https://github.com/tavora-ai/tavora-tools/tree/main/cmd/tavora-tui)
-binary in the [`tavora-tools`](https://github.com/tavora-ai/tavora-tools)
-repo. The same is true for the [`tavora` CLI](https://github.com/tavora-ai/tavora-tools/tree/main/cmd/tavora).
+For deployable tools (interactive chat surface, CI eval gate, etc.), see
+the [`tavora-tools`](https://github.com/tavora-ai/tavora-tools) repo.
+Notable subcommands:
+
+- `tavora evals run --gate` — CI eval gate (replaces the old eval-ci example).
+- `tavora-tui` — interactive Bubble-Tea chat surface against a configured agent.
 
 Examples use a local `replace github.com/tavora-ai/tavora-sdk-go => ../..`
 directive so they always build against the SDK in this checkout. Drop the
