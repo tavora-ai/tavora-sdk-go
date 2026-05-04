@@ -65,7 +65,6 @@ self-contained Go module — `cd examples/<name> && go run .`.
 
 | Example | What it shows |
 |---|---|
-| [`agent-tui`](./examples/agent-tui) | Bubble-Tea TUI: setup flow + chat surface streaming SSE events from `RunAgent` |
 | [`chat`](./examples/chat) | Multi-turn agentic REPL — one `AgentSession` reused across turns |
 | [`support-bot`](./examples/support-bot) | RAG-augmented chat over a documents folder using `Conversation` + `SendMessage` |
 | [`research-assistant`](./examples/research-assistant) | Single-turn agent with `search` + `list_stores` tools |
@@ -74,6 +73,11 @@ self-contained Go module — `cd examples/<name> && go run .`.
 | [`eval-ci`](./examples/eval-ci) | CI-style eval runner — gate promotions on suite pass rate |
 | [`rag-eval`](./examples/rag-eval), [`rag-eval-formats`](./examples/rag-eval-formats), [`rag-eval-judge`](./examples/rag-eval-judge) | RAG quality measurement using `Search` + `ChatCompletion` + LLM-judge scoring |
 | [`e2e`](./examples/e2e) | Live-server integration tests using `testscript` — gates on `TAVORA_URL` + `TAVORA_API_KEY` env vars |
+
+For a fully-featured interactive chat surface, see the
+[`tavora-tui`](https://github.com/tavora-ai/tavora-tools/tree/main/cmd/tavora-tui)
+binary in the [`tavora-tools`](https://github.com/tavora-ai/tavora-tools)
+repo. The same is true for the [`tavora` CLI](https://github.com/tavora-ai/tavora-tools/tree/main/cmd/tavora).
 
 Examples use a local `replace github.com/tavora-ai/tavora-sdk-go => ../..`
 directive so they always build against the SDK in this checkout. Drop the
