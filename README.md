@@ -70,14 +70,16 @@ self-contained Go module — `cd examples/<name> && go run .`.
 | [`research-assistant`](./examples/research-assistant) | Single-turn agent with `search` + `list_stores` tools |
 | [`knowledge-base`](./examples/knowledge-base) | Document upload, store management, semantic search |
 | [`tasklist`](./examples/tasklist) | End-to-end product template — local SQLite app exposes its domain to a Tavora agent via an MCP server registered through `CreateMCPServer` |
-| [`rag-eval`](./examples/rag-eval), [`rag-eval-formats`](./examples/rag-eval-formats), [`rag-eval-judge`](./examples/rag-eval-judge) | RAG quality measurement using `Search` + `ChatCompletion` + LLM-judge scoring |
+| [`llm-judge`](./examples/llm-judge) | ~80-line LLM-as-judge primitive — score an answer against a ground-truth value on a 0–10 rubric using Gemini |
 | [`e2e`](./examples/e2e) | Live-server integration tests using `testscript` — gates on `TAVORA_URL` + `TAVORA_API_KEY` env vars |
 
-For deployable tools (interactive chat surface, CI eval gate, etc.), see
+For deployable tools (interactive chat surface, CI eval gates, etc.), see
 the [`tavora-tools`](https://github.com/tavora-ai/tavora-tools) repo.
 Notable subcommands:
 
-- `tavora evals run --gate` — CI eval gate (replaces the old eval-ci example).
+- `tavora evals run --gate` — CI eval gate against workspace eval cases (replaces the old `eval-ci` example).
+- `tavora rag-eval formats --gate` — verify the RAG pipeline accepts and indexes each supported document format (replaces `rag-eval-formats`).
+- `tavora rag-eval judge --gate` — LLM-as-judge RAG eval against structured ground truth (replaces `rag-eval-judge`).
 - `tavora-tui` — interactive Bubble-Tea chat surface against a configured agent.
 
 Examples use a local `replace github.com/tavora-ai/tavora-sdk-go => ../..`
