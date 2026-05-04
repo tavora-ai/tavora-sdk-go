@@ -24,3 +24,24 @@ func (c *Client) GetWorkspace(ctx context.Context) (*Workspace, error) {
 	}
 	return &space, nil
 }
+
+// SeedWorkspaceResult reports whether the workspace already had agents
+// before seeding, plus the resulting default agent identity.
+type SeedWorkspaceResult struct {
+	AlreadySeeded bool   `json:"already_seeded"`
+	AgentID       string `json:"agent_id,omitempty"`
+	AgentName     string `json:"agent_name,omitempty"`
+}
+
+// SeedWorkspace ensures the workspace has the platform-invariant
+// default agent (one agent + v1.0.0 version + minimal eval suite).
+// Idempotent: if any agent already exists, returns AlreadySeeded=true
+// without mutating state. Equivalent to what signup runs after creating
+// a brand-new workspace.
+func (c *Client) SeedWorkspace(ctx context.Context) (*SeedWorkspaceResult, error) {
+	var out SeedWorkspaceResult
+	if err := c.post(ctx, "/api/sdk/workspace/seed", nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}

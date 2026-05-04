@@ -1,0 +1,48 @@
+# Test: Upload docs and ask a single question (non-interactive mode).
+#
+# Verifies the support-bot workflow:
+#   1. Connects to space
+#   2. Uploads support documentation
+#   3. Creates a conversation
+#   4. Asks one question with RAG and gets a response
+
+exec support-bot --docs support-docs --question 'How do I reset my password?'
+
+# Should connect to space
+stdout 'Connected to space:'
+
+# Should upload files
+stderr 'Uploading'
+stderr 'OK'
+stderr 'done'
+
+# Should create conversation
+stdout 'Conversation:'
+
+# Should produce an AI response (non-deterministic, just check it's not empty)
+stdout .
+
+# Should report token usage on stderr
+stderr 'tokens'
+
+-- support-docs/password-reset.md --
+# Password Reset
+
+If you forgot your password, follow these steps:
+
+1. Go to the login page
+2. Click "Forgot Password"
+3. Enter the email associated with your account
+4. You will receive a password reset link within 5 minutes
+5. Click the link and set a new password
+
+Note: Password reset links expire after 1 hour.
+
+-- support-docs/billing.txt --
+Billing FAQ
+
+Q: How do I update my payment method?
+A: Go to Settings > Billing > Payment Methods and click "Add New".
+
+Q: When am I billed?
+A: Billing occurs on the 1st of each month.

@@ -1,0 +1,6 @@
+# Test: No arguments prints usage.
+
+exec support-bot
+stdout 'Customer Support Bot'
+stdout '--docs'
+stdout '--question'

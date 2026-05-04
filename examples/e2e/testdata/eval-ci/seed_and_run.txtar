@@ -1,0 +1,23 @@
+# Test: Seed eval cases and run the eval suite.
+#
+# Verifies the eval-ci workflow:
+#   1. Seeds sample eval cases (if none exist)
+#   2. Triggers an eval run
+#   3. Polls for completion
+#   4. Prints results table with scores
+#
+# Note: This test may take several minutes depending on LLM response time.
+
+exec eval-ci -seed -set ci -timeout 8m
+
+# Should show eval run metadata on stderr
+stderr 'Starting eval run'
+stderr 'Run ID:'
+
+# Should print results table on stdout
+stdout 'CASE'
+stdout 'SCORE'
+stdout 'PASS'
+
+# Should report summary on stderr
+stderr 'cases passed'

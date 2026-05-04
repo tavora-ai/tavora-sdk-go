@@ -58,6 +58,27 @@ or trace any request.
 
 Full reference at [docs.tavora.ai/sdk](https://docs.tavora.ai/sdk/).
 
+## Examples
+
+Working example apps live under [`examples/`](./examples/). Each is a
+self-contained Go module — `cd examples/<name> && go run .`.
+
+| Example | What it shows |
+|---|---|
+| [`agent-tui`](./examples/agent-tui) | Bubble-Tea TUI: setup flow + chat surface streaming SSE events from `RunAgent` |
+| [`chat`](./examples/chat) | Multi-turn agentic REPL — one `AgentSession` reused across turns |
+| [`support-bot`](./examples/support-bot) | RAG-augmented chat over a documents folder using `Conversation` + `SendMessage` |
+| [`research-assistant`](./examples/research-assistant) | Single-turn agent with `search` + `list_stores` tools |
+| [`knowledge-base`](./examples/knowledge-base) | Document upload, store management, semantic search |
+| [`tasklist`](./examples/tasklist) | End-to-end product template — local SQLite app exposes its domain to a Tavora agent via an MCP server registered through `CreateMCPServer` |
+| [`eval-ci`](./examples/eval-ci) | CI-style eval runner — gate promotions on suite pass rate |
+| [`rag-eval`](./examples/rag-eval), [`rag-eval-formats`](./examples/rag-eval-formats), [`rag-eval-judge`](./examples/rag-eval-judge) | RAG quality measurement using `Search` + `ChatCompletion` + LLM-judge scoring |
+| [`e2e`](./examples/e2e) | Live-server integration tests using `testscript` — gates on `TAVORA_URL` + `TAVORA_API_KEY` env vars |
+
+Examples use a local `replace github.com/tavora-ai/tavora-sdk-go => ../..`
+directive so they always build against the SDK in this checkout. Drop the
+replace when copying an example into your own project.
+
 ## Authentication
 
 All SDK calls send `X-API-Key: tvr_...` and target `/api/sdk/*`. Keys are

@@ -1,0 +1,51 @@
+# Test: Upload documents to a store and run semantic search.
+#
+# Verifies the full knowledge-base workflow:
+#   1. Creates a store from the directory name
+#   2. Uploads .md and .txt files
+#   3. Waits for document processing
+#   4. Runs a semantic search and returns scored results
+
+# Upload documents from the testdata directory
+exec knowledge-base --dir docs --query 'password reset'
+
+# Should show space info
+stdout 'Space:'
+
+# Should confirm store creation and file uploads
+stderr 'Creating store:'
+stderr 'uploaded'
+stderr 'done'
+
+# Should show search results with scores
+stdout 'score:'
+stdout 'password'
+
+-- docs/auth.md --
+# Authentication Guide
+
+## Password Reset
+
+To reset your password:
+1. Click "Forgot Password" on the login page
+2. Enter your email address
+3. Check your inbox for a reset link
+4. Click the link and enter a new password
+
+Passwords must be at least 12 characters and include a number.
+
+## Two-Factor Authentication
+
+Enable 2FA in Settings > Security. We support TOTP apps like Google Authenticator.
+
+-- docs/getting-started.txt --
+Getting Started with Our Platform
+
+Welcome! Here's how to get started:
+
+1. Create an account at our signup page
+2. Verify your email address
+3. Complete your profile
+4. Create your first project
+
+Need help? Contact support@example.com

@@ -1,0 +1,4 @@
+# Test: No arguments prints usage.
+
+exec research-assistant
+stdout 'Usage:'

@@ -1,0 +1,6 @@
+# Test: No arguments prints usage.
+
+exec knowledge-base
+stdout 'Usage:'
+stdout '--dir'
+stdout '--query'

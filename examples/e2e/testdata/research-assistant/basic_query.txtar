@@ -1,0 +1,19 @@
+# Test: Run the research assistant agent with a question.
+#
+# Verifies the agent workflow:
+#   1. Creates an agent session
+#   2. Runs the agent with a question
+#   3. Agent streams tool calls and a response
+#   4. Reports step count and token usage
+
+exec research-assistant 'What documents are available in this space?'
+
+# Should create a session (logged to stderr)
+stderr 'Session:'
+
+# Should produce a response on stdout (non-deterministic content)
+stdout .
+
+# Should report execution metrics
+stderr 'steps'
+stderr 'tokens'

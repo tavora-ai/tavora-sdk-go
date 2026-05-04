@@ -58,3 +58,24 @@ func (c *Client) GetSkill(ctx context.Context, id string) (*Skill, error) {
 func (c *Client) DeleteSkill(ctx context.Context, id string) error {
 	return c.delete(ctx, fmt.Sprintf("/api/sdk/skills/%s", id))
 }
+
+// GetSkillAuthoringGuide returns the canonical "how to write a Tavora
+// skill module" guide as Markdown. The server generates the doc from
+// live runtime introspection (registered primitives, reserved names),
+// so the content stays in sync with the sandbox the skill will run in.
+//
+// Intended use: tooling fetches this and prints it or writes it to a
+// file the user hands to an LLM (e.g. Claude Code) for skill authoring.
+func (c *Client) GetSkillAuthoringGuide(ctx context.Context) (string, error) {
+	resp, err := c.resty.R().
+		SetContext(ctx).
+		SetHeader("Accept", "text/markdown").
+		Get("/api/sdk/skills/authoring-guide")
+	if err != nil {
+		return "", fmt.Errorf("tavora: request failed: %w", err)
+	}
+	if err := checkError(resp); err != nil {
+		return "", err
+	}
+	return string(resp.Body()), nil
+}

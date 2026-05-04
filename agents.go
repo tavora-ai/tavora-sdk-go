@@ -51,12 +51,19 @@ type AgentSessionDetail struct {
 }
 
 // CreateAgentSessionInput holds parameters for creating an agent session.
+//
+// AgentVersionID, when set, pins the session to an immutable agent version
+// — the runtime then resolves persona, skills (filtered by the version's
+// skills_json), and stores from that version, ignoring any inline Title /
+// SystemPrompt / Tools you also pass. Omit it for an ad-hoc session that
+// uses the inline fields directly.
 type CreateAgentSessionInput struct {
-	Title        string          `json:"title,omitempty"`
-	SystemPrompt string          `json:"system_prompt,omitempty"`
-	Model        string          `json:"model,omitempty"`
-	Tools        []string        `json:"tools,omitempty"`
-	Metadata     json.RawMessage `json:"metadata,omitempty"`
+	AgentVersionID string          `json:"agent_version_id,omitempty"`
+	Title          string          `json:"title,omitempty"`
+	SystemPrompt   string          `json:"system_prompt,omitempty"`
+	Model          string          `json:"model,omitempty"`
+	Tools          []string        `json:"tools,omitempty"`
+	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
 // AgentEvent represents a step event during agent execution.
