@@ -49,31 +49,37 @@ package on the server side.
 | GET | `/api/sdk/metrics` | 🧪 | ✅ |
 | POST | `/api/sdk/workspace/seed` | 🧪 | ✅ |
 
-### Stores
+### Indexes (RAG containers)
+
+`/api/sdk/indexes/:id` is a workspace-scoped container of RAG-indexed
+documents — what other ecosystems call "vector stores." Pre-customer
+this surface was named `stores`; renamed for naming-coherence
+(Storage = files; Indexes = RAG; Collections = JSON), see
+`central-store/docs/RESOURCE_MODEL.md`.
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
-| GET | `/api/sdk/stores` | 🧪 | ✅ |
-| POST | `/api/sdk/stores` | 🧪 | ✅ |
-| GET | `/api/sdk/stores/:id` | 🧪 | ✅ |
-| PATCH | `/api/sdk/stores/:id` | 🧪 | ✅ |
-| DELETE | `/api/sdk/stores/:id` | 🧪 | ✅ |
+| GET | `/api/sdk/indexes` | 🧪 | ✅ |
+| POST | `/api/sdk/indexes` | 🧪 | ✅ |
+| GET | `/api/sdk/indexes/:id` | 🧪 | ✅ |
+| PATCH | `/api/sdk/indexes/:id` | 🧪 | ✅ |
+| DELETE | `/api/sdk/indexes/:id` | 🧪 | ✅ |
 
 ### Documents
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
-| POST | `/api/sdk/stores/:id/documents` (multipart) | 🧪 | ✅ |
-| GET | `/api/sdk/stores/:id/documents` | 🧪 | ✅ |
-| GET | `/api/sdk/stores/:id/documents/:docId` | 🧪 | ✅ |
-| GET | `/api/sdk/stores/:id/documents/by-name/:name` | 🧪 | ✅ |
-| GET | `/api/sdk/stores/:id/documents/by-name/:name/versions` | 🧪 | ✅ |
-| DELETE | `/api/sdk/stores/:id/documents/:docId` | 🧪 | ✅ |
+| POST | `/api/sdk/indexes/:id/documents` (multipart) | 🧪 | ✅ |
+| GET | `/api/sdk/indexes/:id/documents` | 🧪 | ✅ |
+| GET | `/api/sdk/indexes/:id/documents/:docId` | 🧪 | ✅ |
+| GET | `/api/sdk/indexes/:id/documents/by-name/:name` | 🧪 | ✅ |
+| GET | `/api/sdk/indexes/:id/documents/by-name/:name/versions` | 🧪 | ✅ |
+| DELETE | `/api/sdk/indexes/:id/documents/:docId` | 🧪 | ✅ |
 | GET | `/api/sdk/documents` | 🧪 | ✅ |
 | GET | `/api/sdk/documents/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/documents/:id` | 🧪 | ✅ |
 
-The per-store `/api/sdk/stores/:id/documents/:docId` routes (GET, DELETE) are alias forms of the workspace-level routes. SDK consumers should prefer the top-level form; the per-store form remains for admin tooling and future tier-1 consumers that already know the store.
+The per-store `/api/sdk/indexes/:id/documents/:docId` routes (GET, DELETE) are alias forms of the workspace-level routes. SDK consumers should prefer the top-level form; the per-store form remains for admin tooling and future tier-1 consumers that already know the store.
 
 Documents carry user-supplied provenance via the multipart `metadata`
 field (free-form JSON, recommended keys: `source`, `task`, `type`,
@@ -118,13 +124,13 @@ the source's hash and excludes the source itself).
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
 | POST | `/api/sdk/search` | 🧪 | ✅ |
-| POST | `/api/sdk/stores/:id/search` | 🧪 | ✅ |
+| POST | `/api/sdk/indexes/:id/search` | 🧪 | ✅ |
 
 ### Collections (workspace-scoped JSON document store)
 
 Mongo-style document buckets the agent uses for typed working memory
 (lists of leads, scraped rows, normalized records). Distinct from
-`stores` (vector RAG) and from `data` (per-run scratch). Filter
+`indexes` (vector RAG) and from `data` (per-run scratch). Filter
 operators: `$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`. Callbacks
 (`.onInsert` / `.onUpdate` / `.onRemove` / `.onQuery`) are JS-only
 and have no SDK equivalent — they're session-scoped goja hooks that
