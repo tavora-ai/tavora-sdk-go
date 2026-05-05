@@ -61,6 +61,26 @@ package on the server side.
 | POST | `/api/sdk/search` | 🧪 | ✅ |
 | POST | `/api/sdk/stores/:id/search` | 🧪 | ✅ |
 
+### Collections (workspace-scoped JSON document store)
+
+Mongo-style document buckets the agent uses for typed working memory
+(lists of leads, scraped rows, normalized records). Distinct from
+`stores` (vector RAG) and from `data` (per-run scratch). Filter
+operators: `$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`. Callbacks
+(`.onInsert` / `.onUpdate` / `.onRemove` / `.onQuery`) are JS-only
+and have no SDK equivalent — they're session-scoped goja hooks that
+fire inside the same agent run that registered them.
+
+| Method | Path | Go SDK | TS SDK |
+|---|---|---|---|
+| GET | `/api/sdk/collections` | 🧪 | ✅ |
+| POST | `/api/sdk/collections` | 🧪 | ✅ |
+| DELETE | `/api/sdk/collections/:name` | 🧪 | ✅ |
+| POST | `/api/sdk/collections/:name/documents` | 🧪 | ✅ |
+| POST | `/api/sdk/collections/:name/find` | 🧪 | ✅ |
+| POST | `/api/sdk/collections/:name/update` | 🧪 | ✅ |
+| POST | `/api/sdk/collections/:name/remove` | 🧪 | ✅ |
+
 ### Chat + Conversations
 
 | Method | Path | Go SDK | TS SDK |
