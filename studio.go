@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 )
 
 // StudioTrace is the enriched trace returned by the Studio API.
@@ -61,6 +62,15 @@ func (c *Client) ReplayFromStep(ctx context.Context, sessionID string, config St
 		return fmt.Errorf("tavora: replay request failed: %w", err)
 	}
 	defer resp.RawBody().Close()
+
+	if resp.StatusCode() >= 400 {
+		body, _ := io.ReadAll(resp.RawBody())
+		apiErr := parseAPIError(resp.StatusCode(), body)
+		if apiErr.Message == "" {
+			apiErr.Message = resp.Status()
+		}
+		return apiErr
+	}
 
 	return parseSSEStream(resp.RawBody(), onEvent)
 }

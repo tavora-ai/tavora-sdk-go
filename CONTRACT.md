@@ -19,6 +19,21 @@ SDKs consume it:
 When the server adds an endpoint, add a row here in the same PR. When an SDK
 method lands, the test is part of the same change — not a follow-up.
 
+**Enforcement (since 2026-05-05).** A route-walker test in
+`tavora-go/internal/server/contract_walk_test.go` boots the live chi
+router, walks every `/api/sdk/*` route, and diffs against the tables
+below. Drift in either direction (table row with no router entry, or
+router entry with no table row) fails CI. Documented exceptions live
+in the test's `walkerExceptions` map with a one-line reason; silent
+skips are forbidden.
+
+**Package layout (since 2026-05-05).** Handlers serving `/api/sdk/*`
+live in `tavora-go/internal/platform/sdk/`; admin-UI handlers live in
+`tavora-go/internal/platform/admin/`. An architest rule enforces the
+import direction (admin → sdk allowed; sdk → admin forbidden). The
+legacy `internal/platform/handlers/` directory is being drained one
+feature at a time — `documents.go` migrated as the worked example.
+
 ## Coverage today
 
 The table groups endpoints by feature. `✅` = method implemented in that
@@ -50,9 +65,53 @@ package on the server side.
 |---|---|---|---|
 | POST | `/api/sdk/stores/:id/documents` (multipart) | 🧪 | ✅ |
 | GET | `/api/sdk/stores/:id/documents` | 🧪 | ✅ |
+| GET | `/api/sdk/stores/:id/documents/:docId` | 🧪 | ✅ |
+| GET | `/api/sdk/stores/:id/documents/by-name/:name` | 🧪 | ✅ |
+| GET | `/api/sdk/stores/:id/documents/by-name/:name/versions` | 🧪 | ✅ |
+| DELETE | `/api/sdk/stores/:id/documents/:docId` | 🧪 | ✅ |
 | GET | `/api/sdk/documents` | 🧪 | ✅ |
 | GET | `/api/sdk/documents/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/documents/:id` | 🧪 | ✅ |
+
+The per-store `/api/sdk/stores/:id/documents/:docId` routes (GET, DELETE) are alias forms of the workspace-level routes. SDK consumers should prefer the top-level form; the per-store form remains for admin tooling and future tier-1 consumers that already know the store.
+
+Documents carry user-supplied provenance via the multipart `metadata`
+field (free-form JSON, recommended keys: `source`, `task`, `type`,
+`tags.*`). Re-uploading with the same `name` to the same store creates
+a new `version`; older versions remain (`is_latest=false`) and are
+fetchable via `?version=N` on the by-name endpoints. `if_version` on
+upload is optimistic concurrency: 409 on mismatch.
+
+`DELETE` is soft by default (sets `deleted_at`, drops `is_latest` so a
+future upload with the same name starts cleanly) and idempotent — 204
+whether the row existed or was already gone. `?hard=true` removes the
+row + the on-disk file.
+
+Non-markdown indexable file types (PDF, DOCX, XLSX, etc.) generate an
+**extracted markdown sibling** on upload: a second documents row with
+`content_type=text/markdown`, `parent_id` pointing at the original,
+`metadata.derived_from="extraction"`, and the same `name` suffixed
+`.md`. Chunks attach to the sibling so search hits cite the editable
+form. The original is marked `status="stored"` (raw bytes preserved,
+not chunked). List the pair via `?parent_id=<original_id>` or filter
+to derived rows with `?derived_from=extraction`.
+
+Non-indexable types (`.json`, source code, etc.) upload successfully
+but skip both extraction and chunking; their `status` settles to
+`"stored"` and they never spawn siblings.
+
+Every uploaded document is hashed server-side; the hex sha256 is
+exposed as `content_sha256` on the response. Find duplicates with
+`?content_sha256=<hex>` or the sugar `?duplicate_of=<id>` (resolves
+the source's hash and excludes the source itself).
+
+`POST /api/sdk/search` (and the per-store variant) accepts an optional
+`result_type`:
+- `"chunk"` (default) — one row per chunk, current shape.
+- `"document"` — one row per distinct document, server-deduped, with
+  the best chunk inlined as `best_chunk.preview`. Use when the agent
+  asks "what artifacts are about X" rather than "what passages are
+  about X".
 
 ### Search
 
@@ -163,6 +222,7 @@ SDK method if a CLI consumer needs offline validation.
 |---|---|---|---|
 | GET | `/api/sdk/evals` | 🧪 | ✅ |
 | POST | `/api/sdk/evals` | 🧪 | ✅ |
+| GET | `/api/sdk/evals/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/evals/:id` | 🧪 | ✅ |
 | POST | `/api/sdk/evals/run` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-runs` | 🧪 | ✅ |
@@ -170,8 +230,10 @@ SDK method if a CLI consumer needs offline validation.
 | GET | `/api/sdk/eval-suites` | 🧪 | ✅ |
 | POST | `/api/sdk/eval-suites` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
+| PATCH | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
 | POST | `/api/sdk/eval-suites/:id/versions` | 🧪 | ✅ |
+| GET | `/api/sdk/eval-suites/:id/versions` | 🧪 | ✅ |
 
 ### Promotions (Phase 12)
 
@@ -226,15 +288,34 @@ Go SDK has a corresponding TS SDK method. The historical ~70% Go-only
 gap (agent configs, evals, policies/approvals, scheduled runs, prompt
 templates, studio, audit) closed in this pass.
 
-**Test coverage: asymmetric.** The Go SDK has full unit tests using
-`httptest.Server` mocks. The TS SDK does not yet have a unit-test
-infrastructure set up — no `tests/` directory, no test runner config in
-`package.json`. Per the contract above this is a known gap and the next
-TS-side commit should land the test infra (Vitest is the natural pick:
-ESM-native, no config) plus tests covering at minimum the methods most
-likely to drift on shape changes (agent configs, evals, policies,
-audit). Until then `🧪` only marks the Go side; the TS side stays at
-`✅` (method present).
+**Test coverage: Vitest landed for documents + errors (2026-05-05).**
+The TS SDK now has Vitest configured (`vitest.config.ts`,
+`test/test-server.ts` mock harness) with parity coverage for the
+documents endpoints (upload with provenance, list with all filters,
+get/get-by-name/list-versions, search both modes, delete soft+hard,
+structured-error round-trip). The errors module has its own tests for
+`asVersionConflict`, `isNotFound`, `isUnauthorized`. Run with
+`pnpm test`.
+
+Remaining gaps (other endpoint families — agent configs, evals,
+policies, audit) still lean on the Go SDK as the only tested path;
+adding TS tests for those is future work, but the Vitest infra is now
+in place so each landing is one file rather than a project setup.
+
+**Error type parity (2026-05-05).** Both SDKs now expose:
+
+- `code` — server-supplied error code string (e.g. `"version_conflict"`,
+  `"NOT_FOUND"`).
+- `details` / `Details` — every other top-level field from the JSON
+  error body (e.g. `current_version` on a 409). Lets agents recover
+  programmatically without parsing human-readable strings.
+- `AsVersionConflict(err) -> (*VersionConflictError, bool)` (Go) /
+  `asVersionConflict(err): VersionConflict | null` (TS) — typed
+  recovery helper that returns the structured `current_version`.
+
+`message` (Go) / `apiMessage` (TS) hold the raw server message
+unwrapped. The TS SDK's `Error.message` keeps the formatted
+`tavora: ... (status N)` wrapper for log lines.
 
 ## Out of scope for this doc
 

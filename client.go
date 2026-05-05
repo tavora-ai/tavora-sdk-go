@@ -6,8 +6,8 @@ package tavora
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/go-resty/resty/v2"
@@ -138,14 +138,31 @@ func (c *Client) upload(ctx context.Context, path, filePath string, fields map[s
 	return checkError(resp)
 }
 
+func (c *Client) uploadReader(ctx context.Context, path, filename string, reader io.Reader, fields map[string]string, result interface{}) error {
+	req := c.resty.R().
+		SetContext(ctx).
+		SetMultipartField("file", filename, "application/octet-stream", reader)
+	for k, v := range fields {
+		req.SetFormData(map[string]string{k: v})
+	}
+	if result != nil {
+		req.SetResult(result)
+	}
+	req.SetHeader("Content-Type", "")
+	resp, err := req.Post(path)
+	if err != nil {
+		return fmt.Errorf("tavora: upload failed: %w", err)
+	}
+	return checkError(resp)
+}
+
 func checkError(resp *resty.Response) error {
 	if resp.StatusCode() >= 400 {
-		var apiErr APIError
-		if err := json.Unmarshal(resp.Body(), &apiErr); err != nil {
-			return &APIError{StatusCode: resp.StatusCode(), Message: resp.Status()}
+		apiErr := parseAPIError(resp.StatusCode(), resp.Body())
+		if apiErr.Message == "" {
+			apiErr.Message = resp.Status()
 		}
-		apiErr.StatusCode = resp.StatusCode()
-		return &apiErr
+		return apiErr
 	}
 	return nil
 }

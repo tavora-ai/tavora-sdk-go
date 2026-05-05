@@ -66,7 +66,11 @@ type CreateAgentSessionInput struct {
 	Metadata       json.RawMessage `json:"metadata,omitempty"`
 }
 
-// AgentEvent represents a step event during agent execution.
+// AgentEvent represents a step event during agent execution. The `Type`
+// field is the discriminator — see EventType* constants below for the
+// complete set. Most events carry context in `Content` / `Tool` /
+// `Args`; terminal events populate `Summary`; input requests stash
+// their typed fields in `Args` (use AsInputRequest to extract).
 type AgentEvent struct {
 	Type    string         `json:"type"`
 	Content string         `json:"content,omitempty"`
@@ -74,6 +78,100 @@ type AgentEvent struct {
 	Args    map[string]any `json:"args,omitempty"`
 	Result  any            `json:"result,omitempty"`
 	Summary *RunSummary    `json:"summary,omitempty"`
+	// Tokens reports per-step LLM token usage for events emitted by an
+	// LLM call (think / respond). Nil for events that don't make an LLM
+	// call (tool_call, tool_result, error, input_request, done).
+	Tokens *CallTokens `json:"tokens,omitempty"`
+}
+
+// CallTokens is per-LLM-call token usage. Mirrors the server's
+// internal/agent.CallTokens.
+type CallTokens struct {
+	Prompt     int32 `json:"prompt"`
+	Completion int32 `json:"completion"`
+}
+
+// Event-type discriminator values that appear in AgentEvent.Type.
+//
+// Tavora's reasoning model is "agent writes JavaScript, sandbox runs
+// it" rather than "agent calls discrete named tools" — these event
+// types reflect that. New types are additive; a consumer that doesn't
+// recognize a future type should treat it as an opaque step rather
+// than crashing.
+const (
+	// EventTypeSandboxEvent — partial LLM output (text emitted before
+	// a JS block, side-channel logging from the sandbox). Carries
+	// Content; Tokens populated when the chunk closes an LLM call.
+	EventTypeSandboxEvent = "sandbox_event"
+	// EventTypeExecuteJS — the agent emitted a complete JS block; the
+	// sandbox is about to run it. Content holds the source.
+	EventTypeExecuteJS = "execute_js"
+	// EventTypeExecuteJSResult — the sandbox finished running a block.
+	// Content holds the formatted result; Result holds the raw value.
+	EventTypeExecuteJSResult = "execute_js_result"
+	// EventTypeDataUpdate — a sandbox primitive mutated agent-session
+	// data; Args holds the changed keys. Useful for live UI sync.
+	EventTypeDataUpdate = "data_update"
+	// EventTypeResponse — the agent's final natural-language answer.
+	// Content holds the response text. Token counts in Tokens.
+	EventTypeResponse = "response"
+	// EventTypeInputRequest — the agent has paused for user input.
+	// Use AsInputRequest to extract the typed request, then call
+	// RespondToAgentInput to resume.
+	EventTypeInputRequest = "input_request"
+	// EventTypeDone — terminal. Summary holds run aggregates.
+	EventTypeDone = "done"
+	// EventTypeError — terminal. Content holds the error message.
+	EventTypeError = "error"
+)
+
+// IsTerminal reports whether this event ends the SSE stream — the
+// callback won't fire again for this RunAgent / ReplayFromStep call.
+func (e AgentEvent) IsTerminal() bool {
+	return e.Type == EventTypeDone || e.Type == EventTypeError
+}
+
+// InputRequest is the typed extraction of an `input_request` event.
+// The agent has paused and is waiting for a response via
+// RespondToAgentInput(ctx, sessionID, RequestID, value). Block until
+// the user/system supplies a value, then call RespondToAgentInput;
+// the SSE stream resumes.
+type InputRequest struct {
+	RequestID   string
+	InputType   string // "confirm" | "choice" | "text"
+	Message     string
+	Options     []string // populated when InputType == "choice"
+	Placeholder string
+}
+
+// AsInputRequest extracts the typed InputRequest from an event of
+// `Type == EventTypeInputRequest`. Returns nil for any other event so
+// callers can write `if req := evt.AsInputRequest(); req != nil { … }`.
+func (e AgentEvent) AsInputRequest() *InputRequest {
+	if e.Type != EventTypeInputRequest {
+		return nil
+	}
+	req := &InputRequest{Message: e.Content}
+	if v, ok := e.Args["request_id"].(string); ok {
+		req.RequestID = v
+	}
+	if v, ok := e.Args["input_type"].(string); ok {
+		req.InputType = v
+	}
+	if v, ok := e.Args["message"].(string); ok && v != "" {
+		req.Message = v
+	}
+	if v, ok := e.Args["placeholder"].(string); ok {
+		req.Placeholder = v
+	}
+	if raw, ok := e.Args["options"].([]any); ok {
+		for _, o := range raw {
+			if s, ok := o.(string); ok {
+				req.Options = append(req.Options, s)
+			}
+		}
+	}
+	return req
 }
 
 // RunSummary holds aggregate metrics for an agent run.
@@ -149,15 +247,27 @@ func (c *Client) RunAgent(ctx context.Context, sessionID, message string, onEven
 
 	if resp.StatusCode() >= 400 {
 		body, _ := io.ReadAll(resp.RawBody())
-		var apiErr APIError
-		if err := json.Unmarshal(body, &apiErr); err != nil {
-			return &APIError{StatusCode: resp.StatusCode(), Message: resp.Status()}
+		apiErr := parseAPIError(resp.StatusCode(), body)
+		if apiErr.Message == "" {
+			apiErr.Message = resp.Status()
 		}
-		apiErr.StatusCode = resp.StatusCode()
-		return &apiErr
+		return apiErr
 	}
 
 	return parseSSEStream(resp.RawBody(), onEvent)
+}
+
+// RespondToAgentInput resolves an input_request event so the paused
+// SSE stream can continue. `value` is encoded per InputType:
+//   - "confirm" → bool
+//   - "choice"  → string (one of the offered Options)
+//   - "text"    → string
+//
+// The server matches the response by RequestID; calling this for an
+// already-resolved or unknown RequestID returns 404 / 400.
+func (c *Client) RespondToAgentInput(ctx context.Context, sessionID, requestID string, value any) error {
+	body := map[string]any{"request_id": requestID, "value": value}
+	return c.post(ctx, fmt.Sprintf("/api/sdk/agents/%s/input", sessionID), body, nil)
 }
 
 func parseSSEStream(reader io.Reader, onEvent func(AgentEvent)) error {
