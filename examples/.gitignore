@@ -1,0 +1,11 @@
+# Compiled example binaries — these get built when the user runs
+# `go build ./...` from each example dir or when the parent workspace
+# `task build` walks them. Names match the example dir name.
+chat/chat
+collections/collections
+e2e/e2e
+knowledge-base/knowledge-base
+llm-judge/llm-judge
+research-assistant/research-assistant
+support-bot/support-bot
+tasklist/tasklist

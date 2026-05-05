@@ -257,7 +257,8 @@ func uploadDocs(ctx context.Context, client *tavora.Client, dir string) (string,
 			}
 			fmt.Print(".")
 		}
-		fmt.Println(" done\n")
+		fmt.Println(" done")
+		fmt.Println()
 	}
 
 	return col.ID, nil
