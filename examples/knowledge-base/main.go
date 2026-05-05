@@ -125,7 +125,7 @@ func uploadDir(ctx context.Context, client *tavora.Client, dir string) (string, 
 	// Create store named after the directory
 	colName := filepath.Base(dir)
 	fmt.Printf("Creating store: %s\n", colName)
-	col, err := client.CreateStore(ctx, tavora.CreateStoreInput{
+	col, err := client.CreateIndex(ctx, tavora.CreateIndexInput{
 		Name:        colName,
 		Description: fmt.Sprintf("Uploaded from %s", dir),
 	})
@@ -142,7 +142,7 @@ func uploadDir(ctx context.Context, client *tavora.Client, dir string) (string, 
 		fmt.Printf("  %s", rel)
 		doc, err := client.UploadDocument(ctx, tavora.UploadDocumentInput{
 			FilePath:     f,
-			StoreID: col.ID,
+			IndexID: col.ID,
 		})
 		if err != nil {
 			fmt.Printf(" - FAILED: %v\n", err)
@@ -198,7 +198,7 @@ func searchDocs(ctx context.Context, client *tavora.Client, query, storeID strin
 
 	results, err := client.Search(ctx, tavora.SearchInput{
 		Query:        query,
-		StoreID: storeID,
+		IndexID: storeID,
 		TopK:         5,
 		MinScore:     0.3,
 	})

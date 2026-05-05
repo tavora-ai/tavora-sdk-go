@@ -22,7 +22,7 @@ Maximum file size: 50 MB per document.
 ### Via the SDK
 ```go
 doc, err := client.UploadDocument(ctx, tavora.UploadDocumentInput{
-    StoreID:  "store-id",
+    IndexID:  "store-id",
     FilePath: "/path/to/document.pdf",
 })
 ```
@@ -43,7 +43,7 @@ Processing time depends on document size:
 ## Stores
 
 Stores are collections of related documents. Use them to organize your knowledge base:
-- Create separate stores for different topics or departments
+- Create separate indexes for different topics or departments
 - When searching or chatting, you can scope queries to a specific store
 - Deleting a store removes all its documents
 
@@ -54,7 +54,7 @@ Search finds documents by meaning, not just keyword matching:
 ```go
 results, err := client.Search(ctx, tavora.SearchInput{
     Query:   "how do I reset my password?",
-    StoreID: "store-id",  // optional: scope to a store
+    IndexID: "store-id",  // optional: scope to a store
     TopK:    5,            // number of results
 })
 ```

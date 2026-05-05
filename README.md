@@ -50,7 +50,7 @@ or trace any request.
 | **Agent versions + deployments** | `CreateAgentVersion`, `ListAgentVersions`, `GetAgentVersion`, `UpsertAgentDeployment`, `ListAgentDeployments` |
 | **Skills** | `CreateSkill`, `ListSkills`, `GetSkill`, `DeleteSkill` |
 | **MCP servers** | `CreateMCPServer`, `ListMCPServers`, `GetMCPServer`, `UpdateMCPServer`, `DeleteMCPServer`, `TestMCPServer` |
-| **Knowledge** | `CreateStore`, `ListStores`, `GetStore`, `UpdateStore`, `DeleteStore`, `UploadDocument`, `GetDocument`, `ListDocuments`, `DeleteDocument`, `Search` |
+| **Knowledge** | `CreateIndex`, `ListIndexes`, `GetIndex`, `UpdateIndex`, `DeleteIndex`, `UploadDocument`, `GetDocument`, `ListDocuments`, `DeleteDocument`, `Search` |
 | **Chat** | `ChatCompletion`, `CreateConversation`, `SendMessage`, `Get/List/DeleteConversation` |
 | **Evals + Promotions** | `CreateSuite`, `RunEval`, `ProposePromotion`, `ApprovePromotion`, … |
 | **Policies** | `UpsertToolPolicy`, `ApproveApprovalRequest`, … |
@@ -67,7 +67,7 @@ self-contained Go module — `cd examples/<name> && go run .`.
 |---|---|
 | [`chat`](./examples/chat) | Multi-turn agentic REPL — one `AgentSession` reused across turns |
 | [`support-bot`](./examples/support-bot) | RAG-augmented chat over a documents folder using `Conversation` + `SendMessage` |
-| [`research-assistant`](./examples/research-assistant) | Single-turn agent with `search` + `list_stores` tools |
+| [`research-assistant`](./examples/research-assistant) | Single-turn agent with `search` + `list_indexes` tools |
 | [`knowledge-base`](./examples/knowledge-base) | Document upload, store management, semantic search |
 | [`tasklist`](./examples/tasklist) | End-to-end product template — local SQLite app exposes its domain to a Tavora agent via an MCP server registered through `CreateMCPServer` |
 | [`llm-judge`](./examples/llm-judge) | ~80-line LLM-as-judge primitive — score an answer against a ground-truth value on a 0–10 rubric using Gemini |

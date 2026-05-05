@@ -139,7 +139,7 @@ func askQuestion(ctx context.Context, client *tavora.Client, convID, storeID, qu
 		UseRAG:  true,
 	}
 	if storeID != "" {
-		input.StoreID = storeID
+		input.IndexID = storeID
 	}
 
 	result, err := client.SendMessage(ctx, convID, input)
@@ -175,7 +175,7 @@ func repl(ctx context.Context, client *tavora.Client, convID, storeID string) er
 			UseRAG:  true,
 		}
 		if storeID != "" {
-			input.StoreID = storeID
+			input.IndexID = storeID
 		}
 
 		result, err := client.SendMessage(ctx, convID, input)
@@ -211,7 +211,7 @@ func uploadDocs(ctx context.Context, client *tavora.Client, dir string) (string,
 	}
 
 	colName := "support-docs-" + time.Now().Format("20060102-1504")
-	col, err := client.CreateStore(ctx, tavora.CreateStoreInput{
+	col, err := client.CreateIndex(ctx, tavora.CreateIndexInput{
 		Name:        colName,
 		Description: "Support documentation",
 	})
@@ -226,7 +226,7 @@ func uploadDocs(ctx context.Context, client *tavora.Client, dir string) (string,
 		fmt.Printf("  %s", rel)
 		doc, err := client.UploadDocument(ctx, tavora.UploadDocumentInput{
 			FilePath:     f,
-			StoreID: col.ID,
+			IndexID: col.ID,
 		})
 		if err != nil {
 			fmt.Printf(" FAILED: %v\n", err)
