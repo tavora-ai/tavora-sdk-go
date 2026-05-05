@@ -50,13 +50,44 @@ or trace any request.
 | **Agent versions + deployments** | `CreateAgentVersion`, `ListAgentVersions`, `GetAgentVersion`, `UpsertAgentDeployment`, `ListAgentDeployments` |
 | **Skills** | `CreateSkill`, `ListSkills`, `GetSkill`, `DeleteSkill` |
 | **MCP servers** | `CreateMCPServer`, `ListMCPServers`, `GetMCPServer`, `UpdateMCPServer`, `DeleteMCPServer`, `TestMCPServer` |
-| **Knowledge** | `CreateIndex`, `ListIndexes`, `GetIndex`, `UpdateIndex`, `DeleteIndex`, `UploadDocument`, `GetDocument`, `ListDocuments`, `DeleteDocument`, `Search` |
+| **Storage** | `UploadFile`, `ListFiles`, `GetFile`, `GetFileContent`, `DeleteFile`, `DeleteFileHard` |
+| **Indexes** (RAG containers) | `CreateIndex`, `ListIndexes`, `GetIndex`, `UpdateIndex`, `DeleteIndex` |
+| **Documents** (RAG-indexed) | `UploadDocument`, `GetDocument`, `GetDocumentByName`, `ListDocuments`, `ListDocumentVersions`, `DeleteDocument`, `DeleteDocumentHard`, `Search`, `SearchDocuments` |
 | **Chat** | `ChatCompletion`, `CreateConversation`, `SendMessage`, `Get/List/DeleteConversation` |
 | **Evals + Promotions** | `CreateSuite`, `RunEval`, `ProposePromotion`, `ApprovePromotion`, … |
 | **Policies** | `UpsertToolPolicy`, `ApproveApprovalRequest`, … |
 | **Studio** | `GetStudioTrace`, `ReplayFromStep`, `AnalyzeFix` |
 
 Full reference at [docs.tavora.ai/sdk](https://docs.tavora.ai/sdk/).
+
+## Resource model
+
+Three first-class layers; the noun describes what you put in, not how
+the server indexes it. See `central-store/docs/RESOURCE_MODEL.md` for
+the full diagram.
+
+| Layer | URL prefix | Use when |
+|---|---|---|
+| **Storage** | `/api/sdk/files` | Raw bytes — screenshots, opaque binary, JSON the agent fetches verbatim. SHA256-deduped on upload. |
+| **Indexes** | `/api/sdk/indexes/:id/documents` + `/api/sdk/search` | Knowledge you want recalled by meaning. Documents inside an Index get chunked + embedded. |
+| **Collections** | `/api/sdk/collections/:name` | Mongo-style typed JSON records. Lists of leads, scraped rows, normalized state. |
+
+Documents carry user-supplied provenance (`source`, `task`, `type`,
+free-form `metadata`) and are name-addressable with version-on-rewrite
++ optimistic-concurrency conflict detection. Search returns chunks
+(default) or one row per distinct document via `result_type:
+"document"` (server-deduped). Non-markdown indexable uploads spawn an
+auto-generated markdown sibling document — search hits cite the
+editable form.
+
+Errors return a typed `APIError` with `Code`, `Message`, and a
+`Details` map for structured fields. `AsVersionConflict(err)` extracts
+the `current_version` for retry-after-reread flows.
+
+For agent sessions: `AgentEvent.Tokens *CallTokens` reports per-step
+LLM cost in real time, `EventType*` constants disambiguate the SSE
+event kind, and `event.AsInputRequest()` + `RespondToAgentInput()`
+implement the pause-for-input flow agents trigger via the sandbox.
 
 ## Examples
 
