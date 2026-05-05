@@ -49,6 +49,26 @@ package on the server side.
 | GET | `/api/sdk/metrics` | 🧪 | ✅ |
 | POST | `/api/sdk/workspace/seed` | 🧪 | ✅ |
 
+### Storage (Files)
+
+`/api/sdk/files/*` — workspace-scoped raw blob storage. Bytes-in /
+bytes-out, sha256-keyed dedup short-circuit on upload. Distinct from
+Documents (RAG-indexed views) and Indexes (RAG containers); Files is
+the universal-bytes primitive everything else can reference.
+
+| Method | Path | Go SDK | TS SDK |
+|---|---|---|---|
+| POST | `/api/sdk/files` (multipart) | 🧪 | ✅ |
+| GET | `/api/sdk/files` | 🧪 | ✅ |
+| GET | `/api/sdk/files/:id` | 🧪 | ✅ |
+| GET | `/api/sdk/files/:id/content` (raw bytes) | 🧪 | ✅ |
+| DELETE | `/api/sdk/files/:id` | 🧪 | ✅ |
+
+Upload returns the existing File row (HTTP 200) when the same
+`(workspace, content_sha256)` is already present; otherwise creates a
+new row (HTTP 201). `?hard=true` on DELETE force-removes a file the
+RESTRICT FK from `documents.file_id` would otherwise block.
+
 ### Indexes (RAG containers)
 
 `/api/sdk/indexes/:id` is a workspace-scoped container of RAG-indexed
