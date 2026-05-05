@@ -33,12 +33,12 @@ func TestListDocuments(t *testing.T) {
 
 func TestListDocuments_WithFilters(t *testing.T) {
 	ts := newTestServer(t)
-	ts.on(http.MethodGet, "/api/sdk/stores/st_1/documents", 200, ListDocumentsResult{
+	ts.on(http.MethodGet, "/api/sdk/indexes/st_1/documents", 200, ListDocumentsResult{
 		Data: []Document{{ID: "doc_1"}},
 	})
 
 	_, err := ts.client().ListDocuments(context.Background(), ListDocumentsInput{
-		StoreID:        "st_1",
+		IndexID:        "st_1",
 		Limit:          10,
 		Offset:         5,
 		Query:          "readme",
@@ -76,14 +76,14 @@ func TestGetDocument(t *testing.T) {
 func TestGetDocumentByName_Latest(t *testing.T) {
 	ts := newTestServer(t)
 	name := "current_plan"
-	ts.on(http.MethodGet, "/api/sdk/stores/st_1/documents/by-name/current_plan", 200, Document{
+	ts.on(http.MethodGet, "/api/sdk/indexes/st_1/documents/by-name/current_plan", 200, Document{
 		ID:      "doc_42",
 		Name:    &name,
 		Version: 3,
 	})
 
 	doc, err := ts.client().GetDocumentByName(context.Background(), GetDocumentByNameInput{
-		StoreID: "st_1",
+		IndexID: "st_1",
 		Name:    "current_plan",
 	})
 	assertNoError(t, err)
@@ -94,12 +94,12 @@ func TestGetDocumentByName_Latest(t *testing.T) {
 func TestGetDocumentByName_PinnedVersion(t *testing.T) {
 	ts := newTestServer(t)
 	name := "current_plan"
-	ts.on(http.MethodGet, "/api/sdk/stores/st_1/documents/by-name/current_plan", 200, Document{
+	ts.on(http.MethodGet, "/api/sdk/indexes/st_1/documents/by-name/current_plan", 200, Document{
 		ID: "doc_42", Name: &name, Version: 2,
 	})
 
 	_, err := ts.client().GetDocumentByName(context.Background(), GetDocumentByNameInput{
-		StoreID: "st_1",
+		IndexID: "st_1",
 		Name:    "current_plan",
 		Version: 2,
 	})
@@ -112,7 +112,7 @@ func TestGetDocumentByName_PinnedVersion(t *testing.T) {
 func TestListDocumentVersions(t *testing.T) {
 	ts := newTestServer(t)
 	name := "current_plan"
-	ts.on(http.MethodGet, "/api/sdk/stores/st_1/documents/by-name/current_plan/versions", 200, map[string]any{
+	ts.on(http.MethodGet, "/api/sdk/indexes/st_1/documents/by-name/current_plan/versions", 200, map[string]any{
 		"versions": []Document{
 			{ID: "doc_43", Name: &name, Version: 2, IsLatest: true},
 			{ID: "doc_42", Name: &name, Version: 1, IsLatest: false},
@@ -151,12 +151,12 @@ func TestDeleteDocumentHard(t *testing.T) {
 
 func TestUploadDocument_FromReader(t *testing.T) {
 	ts := newTestServer(t)
-	ts.on(http.MethodPost, "/api/sdk/stores/st_1/documents", 201, Document{
-		ID: "doc_new", StoreID: "st_1", Filename: "plan.md",
+	ts.on(http.MethodPost, "/api/sdk/indexes/st_1/documents", 201, Document{
+		ID: "doc_new", IndexID: "st_1", Filename: "plan.md",
 	})
 
 	doc, err := ts.client().UploadDocument(context.Background(), UploadDocumentInput{
-		StoreID:  "st_1",
+		IndexID:  "st_1",
 		Content:  bytes.NewReader([]byte("# plan\n")),
 		Filename: "plan.md",
 		Name:     "current_plan",
@@ -182,7 +182,7 @@ func TestUploadDocument_RejectsConflictingInputs(t *testing.T) {
 	_ = ts
 	c := NewClient("http://example.invalid", "tvr_x")
 	_, err := c.UploadDocument(context.Background(), UploadDocumentInput{
-		StoreID: "st_1",
+		IndexID: "st_1",
 		// Both FilePath and Content set — should error before any HTTP.
 		FilePath: "/tmp/x",
 		Content:  bytes.NewReader([]byte("y")),
@@ -193,11 +193,11 @@ func TestUploadDocument_RejectsConflictingInputs(t *testing.T) {
 
 func TestUploadDocument_IfVersion(t *testing.T) {
 	ts := newTestServer(t)
-	ts.on(http.MethodPost, "/api/sdk/stores/st_1/documents", 201, Document{ID: "doc_new"})
+	ts.on(http.MethodPost, "/api/sdk/indexes/st_1/documents", 201, Document{ID: "doc_new"})
 
 	v := int32(2)
 	_, err := ts.client().UploadDocument(context.Background(), UploadDocumentInput{
-		StoreID:   "st_1",
+		IndexID:   "st_1",
 		Content:   bytes.NewReader([]byte("v3")),
 		Filename:  "plan.md",
 		Name:      "current_plan",
@@ -247,18 +247,18 @@ func TestSearch(t *testing.T) {
 
 func TestSearch_WithStore(t *testing.T) {
 	ts := newTestServer(t)
-	ts.on(http.MethodPost, "/api/sdk/stores/st_1/search", 200, map[string]interface{}{
+	ts.on(http.MethodPost, "/api/sdk/indexes/st_1/search", 200, map[string]interface{}{
 		"results": []SearchResult{},
 	})
 
 	_, err := ts.client().Search(context.Background(), SearchInput{
 		Query:   "test",
-		StoreID: "st_1",
+		IndexID: "st_1",
 	})
 	assertNoError(t, err)
 
 	req := ts.lastRequest(t)
-	assertEqual(t, "path", req.Path, "/api/sdk/stores/st_1/search")
+	assertEqual(t, "path", req.Path, "/api/sdk/indexes/st_1/search")
 }
 
 func assertContains(t *testing.T, haystack, needle string) {

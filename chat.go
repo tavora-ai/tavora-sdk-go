@@ -21,8 +21,8 @@ type ChatCompletionInput struct {
 	Messages []ChatMessage `json:"messages"`
 	// UseRAG enables retrieval-augmented generation from space documents.
 	UseRAG bool `json:"use_rag,omitempty"`
-	// StoreID limits RAG search to a specific store.
-	StoreID string `json:"store_id,omitempty"`
+	// IndexID limits RAG search to a specific store.
+	IndexID string `json:"index_id,omitempty"`
 }
 
 // ChatCompletionChoice represents a single completion choice.
@@ -101,7 +101,7 @@ type ConversationDetail struct {
 type SendMessageInput struct {
 	Content string `json:"content"`
 	UseRAG  bool   `json:"use_rag,omitempty"`
-	StoreID string `json:"store_id,omitempty"`
+	IndexID string `json:"index_id,omitempty"`
 }
 
 // SendMessageResult holds the response from sending a message.

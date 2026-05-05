@@ -21,7 +21,7 @@ import (
 type Document struct {
 	ID                string          `json:"id"`
 	WorkspaceID       string          `json:"workspace_id"`
-	StoreID           string          `json:"store_id"`
+	IndexID           string          `json:"index_id"`
 	Filename          string          `json:"filename"`
 	ContentType       string          `json:"content_type"`
 	FileSize          int64           `json:"file_size"`
@@ -48,7 +48,7 @@ type Document struct {
 type ListDocumentsInput struct {
 	Limit    int               `json:"limit,omitempty"`
 	Offset   int               `json:"offset,omitempty"`
-	StoreID  string            `json:"store_id,omitempty"`
+	IndexID  string            `json:"index_id,omitempty"`
 	Query    string            `json:"q,omitempty"`        // ILIKE filter on filename
 	Source   string            `json:"source,omitempty"`   // metadata->>'source' equality
 	Metadata map[string]string `json:"metadata,omitempty"` // metadata @> jsonb filter
@@ -84,7 +84,7 @@ type ListDocumentsResult struct {
 // SearchInput holds the parameters for a semantic search.
 type SearchInput struct {
 	Query    string  `json:"query"`
-	StoreID  string  `json:"store_id,omitempty"`
+	IndexID  string  `json:"index_id,omitempty"`
 	TopK     int32   `json:"top_k,omitempty"`
 	MinScore float64 `json:"min_score,omitempty"`
 
@@ -120,7 +120,7 @@ type SearchResult struct {
 // preview. Returned by SearchDocuments.
 type DocumentSearchResult struct {
 	DocumentID       string          `json:"document_id"`
-	StoreID          string          `json:"store_id"`
+	IndexID          string          `json:"index_id"`
 	Filename         string          `json:"filename"`
 	DocumentName     *string         `json:"document_name"`
 	DocumentMetadata json.RawMessage `json:"document_metadata"`
@@ -140,7 +140,7 @@ type DocumentSearchResult struct {
 // is required (it determines the on-server filename and the extension
 // used for indexability detection).
 type UploadDocumentInput struct {
-	StoreID  string
+	IndexID  string
 	FilePath string    // mutually exclusive with Content
 	Content  io.Reader // mutually exclusive with FilePath; Filename required
 	Filename string    // overrides the basename of FilePath; required with Content
@@ -155,7 +155,7 @@ type UploadDocumentInput struct {
 	ParentID string            // optional ULID/UUID of the parent artifact
 
 	// Optimistic concurrency. Server returns 409 if the current latest
-	// (StoreID, Name) version doesn't equal IfVersion.
+	// (IndexID, Name) version doesn't equal IfVersion.
 	IfVersion *int32
 }
 
@@ -165,8 +165,8 @@ type UploadDocumentInput struct {
 // types are stored opaque (status="stored") so they round-trip but aren't
 // semantically searchable.
 func (c *Client) UploadDocument(ctx context.Context, input UploadDocumentInput) (*Document, error) {
-	if input.StoreID == "" {
-		return nil, fmt.Errorf("tavora: UploadDocument: StoreID is required")
+	if input.IndexID == "" {
+		return nil, fmt.Errorf("tavora: UploadDocument: IndexID is required")
 	}
 	if input.FilePath == "" && input.Content == nil {
 		return nil, fmt.Errorf("tavora: UploadDocument: one of FilePath or Content is required")
@@ -193,7 +193,7 @@ func (c *Client) UploadDocument(ctx context.Context, input UploadDocumentInput) 
 	}
 
 	fields := map[string]string{
-		"store_id": input.StoreID,
+		"index_id": input.IndexID,
 	}
 	if input.Name != "" {
 		fields["name"] = input.Name
@@ -231,7 +231,7 @@ func (c *Client) UploadDocument(ctx context.Context, input UploadDocumentInput) 
 		fields["metadata"] = string(b)
 	}
 
-	path := fmt.Sprintf("/api/sdk/stores/%s/documents", input.StoreID)
+	path := fmt.Sprintf("/api/sdk/indexes/%s/documents", input.IndexID)
 	var doc Document
 	if err := c.uploadReader(ctx, path, filename, reader, fields, &doc); err != nil {
 		return nil, err
@@ -277,8 +277,8 @@ func buildListQuery(base string, in ListDocumentsInput) string {
 // ListDocuments returns a paginated list of documents.
 func (c *Client) ListDocuments(ctx context.Context, input ListDocumentsInput) (*ListDocumentsResult, error) {
 	var base string
-	if input.StoreID != "" {
-		base = fmt.Sprintf("/api/sdk/stores/%s/documents", input.StoreID)
+	if input.IndexID != "" {
+		base = fmt.Sprintf("/api/sdk/indexes/%s/documents", input.IndexID)
 	} else {
 		base = "/api/sdk/documents"
 	}
@@ -304,7 +304,7 @@ func (c *Client) GetDocument(ctx context.Context, id string) (*Document, error) 
 // "latest non-deleted version" (the common path); a positive Version
 // fetches that exact historical version.
 type GetDocumentByNameInput struct {
-	StoreID string
+	IndexID string
 	Name    string
 	Version int32
 }
@@ -314,10 +314,10 @@ type GetDocumentByNameInput struct {
 // agent-facing addressing primitive — "give me the current plan" —
 // without the caller tracking IDs.
 func (c *Client) GetDocumentByName(ctx context.Context, input GetDocumentByNameInput) (*Document, error) {
-	if input.StoreID == "" || input.Name == "" {
-		return nil, fmt.Errorf("tavora: GetDocumentByName: StoreID and Name are required")
+	if input.IndexID == "" || input.Name == "" {
+		return nil, fmt.Errorf("tavora: GetDocumentByName: IndexID and Name are required")
 	}
-	path := fmt.Sprintf("/api/sdk/stores/%s/documents/by-name/%s", input.StoreID, url.PathEscape(input.Name))
+	path := fmt.Sprintf("/api/sdk/indexes/%s/documents/by-name/%s", input.IndexID, url.PathEscape(input.Name))
 	if input.Version > 0 {
 		path += fmt.Sprintf("?version=%d", input.Version)
 	}
@@ -331,7 +331,7 @@ func (c *Client) GetDocumentByName(ctx context.Context, input GetDocumentByNameI
 // ListDocumentVersions returns every version of (store, name), newest
 // first, including soft-deleted ones — the artifact history.
 func (c *Client) ListDocumentVersions(ctx context.Context, storeID, name string) ([]Document, error) {
-	path := fmt.Sprintf("/api/sdk/stores/%s/documents/by-name/%s/versions", storeID, url.PathEscape(name))
+	path := fmt.Sprintf("/api/sdk/indexes/%s/documents/by-name/%s/versions", storeID, url.PathEscape(name))
 	var resp struct {
 		Versions []Document `json:"versions"`
 	}
@@ -353,7 +353,7 @@ func (c *Client) DeleteDocumentHard(ctx context.Context, id string) error {
 	return c.delete(ctx, fmt.Sprintf("/api/sdk/documents/%s?hard=true", id))
 }
 
-// Search performs a chunk-shaped semantic search. If StoreID is set,
+// Search performs a chunk-shaped semantic search. If IndexID is set,
 // searches within that store; otherwise searches across all stores.
 // For document-shaped results use SearchDocuments.
 func (c *Client) Search(ctx context.Context, input SearchInput) ([]SearchResult, error) {
@@ -364,7 +364,7 @@ func (c *Client) Search(ctx context.Context, input SearchInput) ([]SearchResult,
 	var resp struct {
 		Results []SearchResult `json:"results"`
 	}
-	if err := c.post(ctx, searchPath(input.StoreID), input, &resp); err != nil {
+	if err := c.post(ctx, searchPath(input.IndexID), input, &resp); err != nil {
 		return nil, err
 	}
 	return resp.Results, nil
@@ -379,7 +379,7 @@ func (c *Client) SearchDocuments(ctx context.Context, input SearchInput) ([]Docu
 	var resp struct {
 		Results []DocumentSearchResult `json:"results"`
 	}
-	if err := c.post(ctx, searchPath(input.StoreID), input, &resp); err != nil {
+	if err := c.post(ctx, searchPath(input.IndexID), input, &resp); err != nil {
 		return nil, err
 	}
 	return resp.Results, nil
@@ -387,7 +387,7 @@ func (c *Client) SearchDocuments(ctx context.Context, input SearchInput) ([]Docu
 
 func searchPath(storeID string) string {
 	if storeID != "" {
-		return fmt.Sprintf("/api/sdk/stores/%s/search", storeID)
+		return fmt.Sprintf("/api/sdk/indexes/%s/search", storeID)
 	}
 	return "/api/sdk/search"
 }

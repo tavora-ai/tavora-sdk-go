@@ -45,7 +45,7 @@ func TestChatCompletion_WithRAG(t *testing.T) {
 	_, err := ts.client().ChatCompletion(context.Background(), ChatCompletionInput{
 		Messages: []ChatMessage{{Role: "user", Content: "What's in the docs?"}},
 		UseRAG:   true,
-		StoreID:  "st_1",
+		IndexID:  "st_1",
 	})
 	assertNoError(t, err)
 
@@ -53,7 +53,7 @@ func TestChatCompletion_WithRAG(t *testing.T) {
 	var body ChatCompletionInput
 	json.Unmarshal([]byte(req.Body), &body)
 	assertEqual(t, "use_rag", body.UseRAG, true)
-	assertEqual(t, "store_id", body.StoreID, "st_1")
+	assertEqual(t, "index_id", body.IndexID, "st_1")
 }
 
 func TestCreateConversation(t *testing.T) {

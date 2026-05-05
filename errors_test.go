@@ -98,7 +98,7 @@ func TestIsHelpers(t *testing.T) {
 // consumer needs.
 func TestUploadDocument_VersionConflictTypedError(t *testing.T) {
 	ts := newTestServer(t)
-	ts.on(http.MethodPost, "/api/sdk/stores/st_1/documents", 409, map[string]any{
+	ts.on(http.MethodPost, "/api/sdk/indexes/st_1/documents", 409, map[string]any{
 		"code":            "version_conflict",
 		"message":         "if_version does not match current version",
 		"current_version": 7,
@@ -106,7 +106,7 @@ func TestUploadDocument_VersionConflictTypedError(t *testing.T) {
 
 	v := int32(99)
 	_, err := ts.client().UploadDocument(context.Background(), UploadDocumentInput{
-		StoreID:   "st_1",
+		IndexID:   "st_1",
 		Content:   bytes.NewReader([]byte("v100")),
 		Filename:  "plan.md",
 		Name:      "current_plan",
