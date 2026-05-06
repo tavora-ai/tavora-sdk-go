@@ -56,18 +56,28 @@ bytes-out, sha256-keyed dedup short-circuit on upload. Distinct from
 Documents (RAG-indexed views) and Indexes (RAG containers); Files is
 the universal-bytes primitive everything else can reference.
 
+Files live inside named **buckets** within a workspace — caller-defined
+strings like `screenshots`, `runs/42/`, or `user-attachments`. Buckets
+are S3-shaped: just a name (no per-bucket config), used as both a query
+filter and an on-disk path segment under
+`<upload>/<workspace>/files/<bucket>/<file_id>/`. Uploads default to
+`bucket=default` when the form field is omitted.
+
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
-| POST | `/api/sdk/files` (multipart) | 🧪 | ✅ |
-| GET | `/api/sdk/files` | 🧪 | ✅ |
+| POST | `/api/sdk/files` (multipart, optional `bucket` form field) | 🧪 | ✅ |
+| GET | `/api/sdk/files` (optional `?bucket=` or `?bucket_prefix=`) | 🧪 | ✅ |
+| GET | `/api/sdk/files/buckets` | 🧪 | ✅ |
 | GET | `/api/sdk/files/:id` | 🧪 | ✅ |
 | GET | `/api/sdk/files/:id/content` (raw bytes) | 🧪 | ✅ |
 | DELETE | `/api/sdk/files/:id` | 🧪 | ✅ |
 
 Upload returns the existing File row (HTTP 200) when the same
-`(workspace, content_sha256)` is already present; otherwise creates a
-new row (HTTP 201). `?hard=true` on DELETE force-removes a file the
-RESTRICT FK from `documents.file_id` would otherwise block.
+`(workspace, bucket, content_sha256)` is already present; the same
+bytes posted to a different bucket are intentionally a fresh row.
+Otherwise creates a new row (HTTP 201). `?hard=true` on DELETE
+force-removes a file the RESTRICT FK from `documents.file_id` would
+otherwise block.
 
 ### Indexes (RAG containers)
 
