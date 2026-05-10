@@ -267,6 +267,7 @@ SDK method if a CLI consumer needs offline validation.
 | POST | `/api/sdk/eval-suites` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
 | PATCH | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
+| PATCH | `/api/sdk/eval-suites/:id/judge` | ❌ | ❌ |
 | DELETE | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
 | POST | `/api/sdk/eval-suites/:id/versions` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-suites/:id/versions` | 🧪 | ✅ |
