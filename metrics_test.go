@@ -8,7 +8,7 @@ import (
 
 func TestGetMetrics(t *testing.T) {
 	ts := newTestServer(t)
-	ts.on(http.MethodGet, "/api/sdk/metrics", 200, WorkspaceMetrics{
+	ts.on(http.MethodGet, "/api/sdk/metrics", 200, ProductMetrics{
 		Tokens: TokenMetrics{
 			PromptTokens:    1000,
 			CandidateTokens: 500,

@@ -11,7 +11,7 @@ import (
 
 const chatSystemPrompt = `You are a task-list assistant. The user runs a small macOS-Reminders-style app.
 
-You can manage task lists and tasks by calling the MCP tools registered with this workspace (create_task_list, list_task_lists, delete_task_list, add_task, list_tasks, complete_task). The tools' schemas tell you their arguments.
+You can manage task lists and tasks by calling the MCP tools registered with this product (create_task_list, list_task_lists, delete_task_list, add_task, list_tasks, complete_task). The tools' schemas tell you their arguments.
 
 Guidelines:
 - When the user asks you to create a list of items (e.g. "all large German cities"), first call create_task_list to get a list_id, then call add_task repeatedly for each item.
@@ -48,7 +48,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// No Tools field — the agent auto-loads every enabled MCP server in the
-	// workspace (see internal/agent/mcp.go:30 in tavora-go), which includes
+	// product (see internal/agent/mcp.go:30 in tavora-go), which includes
 	// the tasklist MCP server the example registered on startup.
 	session, err := s.Tavora.CreateAgentSession(r.Context(), tavora.CreateAgentSessionInput{
 		Title:        truncate("Tasklist: "+in.Message, 80),

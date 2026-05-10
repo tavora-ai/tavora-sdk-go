@@ -20,7 +20,7 @@ import (
 // caller passed to UploadDocument.
 type Document struct {
 	ID                string          `json:"id"`
-	WorkspaceID       string          `json:"workspace_id"`
+	ProductID       string          `json:"product_id"`
 	IndexID           string          `json:"index_id"`
 	Filename          string          `json:"filename"`
 	ContentType       string          `json:"content_type"`

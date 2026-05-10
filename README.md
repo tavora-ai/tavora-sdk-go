@@ -28,11 +28,11 @@ func main() {
     client := tavora.NewClient("https://api.tavora.ai", "tvr_your-api-key")
     ctx := context.Background()
 
-    ws, err := client.GetWorkspace(ctx)
+    ws, err := client.GetProduct(ctx)
     if err != nil {
         log.Fatal(err)
     }
-    fmt.Printf("Connected to workspace: %s\n", ws.Name)
+    fmt.Printf("Connected to product: %s\n", ws.Name)
 }
 ```
 
@@ -44,7 +44,7 @@ or trace any request.
 
 | Area | Methods |
 |---|---|
-| **Workspace** | `GetWorkspace` |
+| **Product** | `GetProduct` |
 | **Agents — sessions** | `CreateAgentSession`, `ListAgentSessions`, `GetAgentSession`, `DeleteAgentSession`, `RunAgent`, `GetAgentSystemPrompt` |
 | **Agents — configs + versions** | `CreateAgentConfig`, `ListAgentConfigs`, `Get/Update/DeleteAgentConfig`, `SetActiveAgentVersion` |
 | **Agent versions + deployments** | `CreateAgentVersion`, `ListAgentVersions`, `GetAgentVersion`, `UpsertAgentDeployment`, `ListAgentDeployments` |
@@ -108,7 +108,7 @@ For deployable tools (interactive chat surface, CI eval gates, etc.), see
 the [`tavora-tools`](https://github.com/tavora-ai/tavora-tools) repo.
 Notable subcommands:
 
-- `tavora evals run --gate` — CI eval gate against workspace eval cases (replaces the old `eval-ci` example).
+- `tavora evals run --gate` — CI eval gate against product eval cases (replaces the old `eval-ci` example).
 - `tavora rag-eval formats --gate` — verify the RAG pipeline accepts and indexes each supported document format (replaces `rag-eval-formats`).
 - `tavora rag-eval judge --gate` — LLM-as-judge RAG eval against structured ground truth (replaces `rag-eval-judge`).
 - `tavora-tui` — interactive Bubble-Tea chat surface against a configured agent.
@@ -120,8 +120,8 @@ replace when copying an example into your own project.
 ## Authentication
 
 All SDK calls send `X-API-Key: tvr_...` and target `/api/sdk/*`. Keys are
-workspace-scoped — one key, one workspace. Create them in the admin UI
-under **Workspace Settings → API keys**.
+product-scoped — one key, one product. Create them in the admin UI
+under **Product Settings → API keys**.
 
 For browser apps, use the session-token exchange described in
 [Browser-side chat](https://docs.tavora.ai/sdk/browser-app/).

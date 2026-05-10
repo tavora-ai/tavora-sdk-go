@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-// Index is a workspace-scoped container of RAG-indexed documents — what
+// Index is a product-scoped container of RAG-indexed documents — what
 // other ecosystems call a "vector store." Pre-customer this surface was
 // named Store; renamed for naming-coherence (Storage = files,
 // Indexes = RAG, Collections = JSON). See the corresponding rename in
 // tavora-go (migration 00047) and the SDK CONTRACT.
 type Index struct {
 	ID          string    `json:"id"`
-	WorkspaceID string    `json:"workspace_id"`
+	ProductID string    `json:"product_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -32,7 +32,7 @@ type UpdateIndexInput struct {
 	Description string `json:"description,omitempty"`
 }
 
-// ListIndexes returns all indexes in the workspace.
+// ListIndexes returns all indexes in the product.
 func (c *Client) ListIndexes(ctx context.Context) ([]Index, error) {
 	var resp struct {
 		Indexes []Index `json:"indexes"`

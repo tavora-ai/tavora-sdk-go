@@ -8,14 +8,14 @@ import (
 )
 
 // ToolPolicy is a Phase-14 primitive: a gate on a single tool for a single
-// workspace (and optionally a single agent version). The sandbox consults
+// product (and optionally a single agent version). The sandbox consults
 // one of these before every tool call.
 //
-// AgentVersionID is nil for workspace-default rows; set to a specific
+// AgentVersionID is nil for product-default rows; set to a specific
 // version's id for per-version overrides. Version overrides beat defaults.
 type ToolPolicy struct {
 	ID             string          `json:"id"`
-	WorkspaceID    string          `json:"workspace_id"`
+	ProductID    string          `json:"product_id"`
 	AgentVersionID *string         `json:"agent_version_id"`
 	ToolName       string          `json:"tool_name"`
 	Mode           string          `json:"mode"` // allow | deny | approve
@@ -31,7 +31,7 @@ type ToolPolicy struct {
 // "approved" / "rejected" / "expired" to unblock the agent session.
 type ApprovalRequest struct {
 	ID                 string          `json:"id"`
-	WorkspaceID        string          `json:"workspace_id"`
+	ProductID        string          `json:"product_id"`
 	SessionID          *string         `json:"session_id"`
 	AgentVersionID     *string         `json:"agent_version_id"`
 	PolicyID           *string         `json:"policy_id"`
@@ -49,8 +49,8 @@ type ApprovalRequest struct {
 
 // --- Input types ---
 
-// UpsertToolPolicyInput is keyed by (WorkspaceID, AgentVersionID, ToolName).
-// Omit AgentVersionID to target the workspace-default row.
+// UpsertToolPolicyInput is keyed by (ProductID, AgentVersionID, ToolName).
+// Omit AgentVersionID to target the product-default row.
 type UpsertToolPolicyInput struct {
 	AgentVersionID string         `json:"agent_version_id,omitempty"`
 	ToolName       string         `json:"tool_name"`
@@ -60,8 +60,8 @@ type UpsertToolPolicyInput struct {
 
 // --- Tool policy methods ---
 
-// ListToolPolicies returns all policies for the API-key's workspace
-// (both workspace-defaults and per-version overrides).
+// ListToolPolicies returns all policies for the API-key's product
+// (both product-defaults and per-version overrides).
 func (c *Client) ListToolPolicies(ctx context.Context) ([]ToolPolicy, error) {
 	var out []ToolPolicy
 	if err := c.get(ctx, "/api/sdk/tool-policies", &out); err != nil {
@@ -71,7 +71,7 @@ func (c *Client) ListToolPolicies(ctx context.Context) ([]ToolPolicy, error) {
 }
 
 // UpsertToolPolicy creates or updates a policy row. Concurrent upserts on
-// the same (workspace, version, tool) are serialized by a partial unique
+// the same (product, version, tool) are serialized by a partial unique
 // index and silently overwrite — last write wins.
 func (c *Client) UpsertToolPolicy(ctx context.Context, input UpsertToolPolicyInput) (*ToolPolicy, error) {
 	var out ToolPolicy
@@ -82,7 +82,7 @@ func (c *Client) UpsertToolPolicy(ctx context.Context, input UpsertToolPolicyInp
 }
 
 // DeleteToolPolicy removes a policy row. The tool falls back to any
-// workspace-default row (when deleting a version-override) or to the
+// product-default row (when deleting a version-override) or to the
 // code default (allow for most tools, deny for fetch).
 func (c *Client) DeleteToolPolicy(ctx context.Context, policyID string) error {
 	return c.delete(ctx, fmt.Sprintf("/api/sdk/tool-policies/%s", policyID))

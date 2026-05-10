@@ -7,13 +7,13 @@ import (
 	"time"
 )
 
-// AgentConfig is a persistent agent configuration owned by a workspace.
+// AgentConfig is a persistent agent configuration owned by a product.
 // Named AgentConfig in the SDK to distinguish from AgentSession, which is
 // an ephemeral run. The backend uses the URL segment "agent-configs" for
 // the same reason.
 type AgentConfig struct {
 	ID              string    `json:"id"`
-	WorkspaceID     string    `json:"workspace_id"`
+	ProductID     string    `json:"product_id"`
 	Name            string    `json:"name"`
 	Description     string    `json:"description"`
 	CreatedBy       string    `json:"created_by"`

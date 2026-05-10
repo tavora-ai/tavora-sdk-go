@@ -41,26 +41,26 @@ SDK. `🧪` = method implemented and unit-tested in that SDK.
 `—` = not yet present. "Feature area" maps to the `internal/*/`
 package on the server side.
 
-### Workspace
+### Product
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
-| GET | `/api/sdk/space` | 🧪 | ✅ |
+| GET | `/api/sdk/product` | 🧪 | ✅ |
 | GET | `/api/sdk/metrics` | 🧪 | ✅ |
-| POST | `/api/sdk/workspace/seed` | 🧪 | ✅ |
+| POST | `/api/sdk/product/seed` | 🧪 | ✅ |
 
 ### Storage (Files)
 
-`/api/sdk/files/*` — workspace-scoped raw blob storage. Bytes-in /
+`/api/sdk/files/*` — product-scoped raw blob storage. Bytes-in /
 bytes-out, sha256-keyed dedup short-circuit on upload. Distinct from
 Documents (RAG-indexed views) and Indexes (RAG containers); Files is
 the universal-bytes primitive everything else can reference.
 
-Files live inside named **buckets** within a workspace — caller-defined
+Files live inside named **buckets** within a product — caller-defined
 strings like `screenshots`, `runs/42/`, or `user-attachments`. Buckets
 are S3-shaped: just a name (no per-bucket config), used as both a query
 filter and an on-disk path segment under
-`<upload>/<workspace>/files/<bucket>/<file_id>/`. Uploads default to
+`<upload>/<product>/files/<bucket>/<file_id>/`. Uploads default to
 `bucket=default` when the form field is omitted.
 
 | Method | Path | Go SDK | TS SDK |
@@ -73,7 +73,7 @@ filter and an on-disk path segment under
 | DELETE | `/api/sdk/files/:id` | 🧪 | ✅ |
 
 Upload returns the existing File row (HTTP 200) when the same
-`(workspace, bucket, content_sha256)` is already present; the same
+`(product, bucket, content_sha256)` is already present; the same
 bytes posted to a different bucket are intentionally a fresh row.
 Otherwise creates a new row (HTTP 201). `?hard=true` on DELETE
 force-removes a file the RESTRICT FK from `documents.file_id` would
@@ -81,7 +81,7 @@ otherwise block.
 
 ### Indexes (RAG containers)
 
-`/api/sdk/indexes/:id` is a workspace-scoped container of RAG-indexed
+`/api/sdk/indexes/:id` is a product-scoped container of RAG-indexed
 documents — what other ecosystems call "vector stores." Pre-customer
 this surface was named `stores`; renamed for naming-coherence
 (Storage = files; Indexes = RAG; Collections = JSON), see
@@ -109,7 +109,7 @@ this surface was named `stores`; renamed for naming-coherence
 | GET | `/api/sdk/documents/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/documents/:id` | 🧪 | ✅ |
 
-The per-store `/api/sdk/indexes/:id/documents/:docId` routes (GET, DELETE) are alias forms of the workspace-level routes. SDK consumers should prefer the top-level form; the per-store form remains for admin tooling and future tier-1 consumers that already know the store.
+The per-store `/api/sdk/indexes/:id/documents/:docId` routes (GET, DELETE) are alias forms of the product-level routes. SDK consumers should prefer the top-level form; the per-store form remains for admin tooling and future tier-1 consumers that already know the store.
 
 Documents carry user-supplied provenance via the multipart `metadata`
 field (free-form JSON, recommended keys: `source`, `task`, `type`,
@@ -156,7 +156,7 @@ the source's hash and excludes the source itself).
 | POST | `/api/sdk/search` | 🧪 | ✅ |
 | POST | `/api/sdk/indexes/:id/search` | 🧪 | ✅ |
 
-### Collections (workspace-scoped JSON document store)
+### Collections (product-scoped JSON document store)
 
 Mongo-style document buckets the agent uses for typed working memory
 (lists of leads, scraped rows, normalized records). Distinct from

@@ -11,13 +11,13 @@ import (
 	"time"
 )
 
-// File is a raw blob in workspace-scoped Storage. Distinct from
+// File is a raw blob in product-scoped Storage. Distinct from
 // Document (RAG-indexed view of a file) and Index (RAG container) per
 // central-store/docs/RESOURCE_MODEL.md. Bytes-in / bytes-out, with
 // sha256-keyed dedup short-circuit on upload.
 type File struct {
 	ID                string     `json:"id"`
-	WorkspaceID       string     `json:"workspace_id"`
+	ProductID       string     `json:"product_id"`
 	Filename          string     `json:"filename"`
 	ContentType       string     `json:"content_type"`
 	SizeBytes         int64      `json:"size_bytes"`
@@ -55,7 +55,7 @@ type ListFilesResult struct {
 	HasMore bool   `json:"has_more"`
 }
 
-// UploadFile uploads bytes and returns the File row. If the workspace
+// UploadFile uploads bytes and returns the File row. If the product
 // already has a live file with the same content sha256, the server
 // returns the existing row (HTTP 200); otherwise it creates a new
 // row (HTTP 201). The caller doesn't need to distinguish — both shapes

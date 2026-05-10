@@ -9,7 +9,7 @@ import (
 // ScheduledRun represents a scheduled agent execution.
 type ScheduledRun struct {
 	ID             string     `json:"id"`
-	WorkspaceID        string     `json:"workspace_id"`
+	ProductID        string     `json:"product_id"`
 	AgentSessionID string     `json:"agent_session_id"`
 	Name           string     `json:"name"`
 	CronExpression string     `json:"cron_expression"`

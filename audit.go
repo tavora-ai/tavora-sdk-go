@@ -11,7 +11,7 @@ import (
 // TenantAuditEntry is one row from the tenant audit log.
 type TenantAuditEntry struct {
 	ID             string          `json:"id"`
-	WorkspaceID    string          `json:"workspace_id"`
+	ProductID    string          `json:"product_id"`
 	ActorUserID    *string         `json:"actor_user_id"`
 	ActorAPIKeyID  *string         `json:"actor_api_key_id"`
 	Action         string          `json:"action"`
@@ -42,7 +42,7 @@ type AuditListPage struct {
 	Offset  int                `json:"offset"`
 }
 
-// ListAuditLog returns a page of audit entries for the API-key's workspace.
+// ListAuditLog returns a page of audit entries for the API-key's product.
 func (c *Client) ListAuditLog(ctx context.Context, f AuditListFilter) (*AuditListPage, error) {
 	q := url.Values{}
 	if f.Action != "" {

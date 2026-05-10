@@ -73,12 +73,12 @@ func run() error {
 	client := tavora.NewClient(url, key)
 	ctx := context.Background()
 
-	// Show workspace info
-	ws, err := client.GetWorkspace(ctx)
+	// Show product info
+	ws, err := client.GetProduct(ctx)
 	if err != nil {
-		return fmt.Errorf("getting workspace: %w", err)
+		return fmt.Errorf("getting product: %w", err)
 	}
-	fmt.Printf("Workspace: %s (%s)\n\n", ws.Name, ws.ID)
+	fmt.Printf("Product: %s (%s)\n\n", ws.Name, ws.ID)
 
 	var storeID string
 

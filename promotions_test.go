@@ -11,7 +11,7 @@ func TestCreateSuite(t *testing.T) {
 	ts := newTestServer(t)
 	ts.on(http.MethodPost, "/api/sdk/eval-suites", 201, EvalSuite{
 		ID:          "s_1",
-		WorkspaceID: "ws_1",
+		ProductID: "ws_1",
 		Name:        "Support triage",
 		Threshold:   0.8,
 	})
