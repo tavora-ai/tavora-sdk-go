@@ -2,34 +2,40 @@ package tavora
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 )
 
-// Index is an app-scoped container of RAG-indexed documents — what
-// other ecosystems call a "vector store." Pre-customer this surface was
-// named Store; renamed for naming-coherence (Storage = files,
-// Indexes = RAG, Collections = JSON). See the corresponding rename in
-// tavora-go (migration 00047) and the SDK CONTRACT.
+// Index is an app-scoped container of RAG-indexed documents — what other
+// ecosystems call a "vector store." Naming history: stores → indexes
+// (tavora-go migration 00047). The Collections + Files surfaces that
+// shared this naming taxonomy were retired by the 2026-05-11 positioning
+// rewrite — Indexes is the sole retrieval primitive Tavora owns.
 type Index struct {
-	ID          string    `json:"id"`
-	AppID string    `json:"app_id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string          `json:"id"`
+	AppID       string          `json:"app_id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Metadata    json.RawMessage `json:"metadata"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
 }
 
 // CreateIndexInput holds the parameters for creating an index.
 type CreateIndexInput struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
-// UpdateIndexInput holds the parameters for updating an index.
+// UpdateIndexInput holds the parameters for updating an index. PATCH
+// semantics: omitted Metadata preserves the current value; pass `json.RawMessage("{}")`
+// to clear.
 type UpdateIndexInput struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
 // ListIndexes returns all indexes in the app.

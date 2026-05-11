@@ -68,9 +68,16 @@ the full diagram.
 
 | Layer | URL prefix | Use when |
 |---|---|---|
-| **Storage** | `/api/sdk/files` | Raw bytes — screenshots, opaque binary, JSON the agent fetches verbatim. SHA256-deduped on upload. |
 | **Indexes** | `/api/sdk/indexes/:id/documents` + `/api/sdk/search` | Knowledge you want recalled by meaning. Documents inside an Index get chunked + embedded. |
-| **Collections** | `/api/sdk/collections/:name` | Mongo-style typed JSON records. Lists of leads, scraped rows, normalized state. |
+| **Memory stores** | `/api/sdk/memory-stores/:id/entries` | Named persistent key-value buckets pinned to an agent session via `memory_store_id`. The agent reads/writes via `remember()` / `recall()`. |
+| **Secret vaults** | `/api/sdk/secret-vaults/:id/secrets` | Envelope-encrypted credentials the agent reads via `secret(name)` in the sandbox. The API never returns plaintext. |
+| **Tenants** | `/api/sdk/tenants/:ref` | Opaque per-end-customer identifier — the platform isolates memory + secrets + audit behind it. One-line facade for the explicit primitives above. |
+
+*Note:* Storage / Files and Collections were removed in the 2026-05-11
+positioning rewrite. Customer file storage and persistent structured
+records belong in the customer's backend (PocketBase / Supabase /
+your own DB), exposed to the agent via MCP. See `CONTRACT.md` for
+the deprecation entries.
 
 Documents carry user-supplied provenance (`source`, `task`, `type`,
 free-form `metadata`) and are name-addressable with version-on-rewrite

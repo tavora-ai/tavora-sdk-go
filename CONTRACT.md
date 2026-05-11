@@ -48,36 +48,30 @@ package on the server side.
 | GET | `/api/sdk/app` | 🧪 | ✅ |
 | GET | `/api/sdk/metrics` | 🧪 | ✅ |
 | POST | `/api/sdk/app/seed` | 🧪 | ✅ |
+| PUT | `/api/sdk/app/llm-vault` | ⏳ | ⏳ |
 
-### Storage (Files)
+The `/api/sdk/app/llm-vault` endpoint designates which of the app's
+secret_vaults sources LLM provider credentials. When set, the runtime
+LLM resolver reads keys by convention (`openai_api_key`,
+`anthropic_api_key`, `gemini_api_key`, `openrouter_api_key`,
+`edenai_api_key`, `ollama_base_url`) from that vault per call, falling
+back to the server-wide env vars for any provider not in the vault.
+Cached for 60 s per (app, provider). This is what flips the
+*"BYO model keys"* claim from gated to live.
 
-`/api/sdk/files/*` — app-scoped raw blob storage. Bytes-in /
-bytes-out, sha256-keyed dedup short-circuit on upload. Distinct from
-Documents (RAG-indexed views) and Indexes (RAG containers); Files is
-the universal-bytes primitive everything else can reference.
+### Storage / Files — ❌ removed 2026-05-11
 
-Files live inside named **buckets** within an app — caller-defined
-strings like `screenshots`, `runs/42/`, or `user-attachments`. Buckets
-are S3-shaped: just a name (no per-bucket config), used as both a query
-filter and an on-disk path segment under
-`<upload>/<app>/files/<bucket>/<file_id>/`. Uploads default to
-`bucket=default` when the form field is omitted.
+Removed by the positioning rewrite. Customer file storage moves to the
+customer's backend (PocketBase Storage / Supabase Storage / their own
+S3 / R2), exposed to the agent via MCP when the agent needs to read
+or write bytes. The `/api/sdk/files/*` surface is gone in migration
+`00061_drop_files_table.sql`; the `internal/platform/sdk/files.go`
+handler and the `files` table were deleted in the same wave.
 
-| Method | Path | Go SDK | TS SDK |
-|---|---|---|---|
-| POST | `/api/sdk/files` (multipart, optional `bucket` form field) | 🧪 | ✅ |
-| GET | `/api/sdk/files` (optional `?bucket=` or `?bucket_prefix=`) | 🧪 | ✅ |
-| GET | `/api/sdk/files/buckets` | 🧪 | ✅ |
-| GET | `/api/sdk/files/:id` | 🧪 | ✅ |
-| GET | `/api/sdk/files/:id/content` (raw bytes) | 🧪 | ✅ |
-| DELETE | `/api/sdk/files/:id` | 🧪 | ✅ |
-
-Upload returns the existing File row (HTTP 200) when the same
-`(app, bucket, content_sha256)` is already present; the same
-bytes posted to a different bucket are intentionally a fresh row.
-Otherwise creates a new row (HTTP 201). `?hard=true` on DELETE
-force-removes a file the RESTRICT FK from `documents.file_id` would
-otherwise block.
+Document ingest for RAG was never coupled to the `files` table in
+practice (the `documents.file_id` column added by migration 00049
+was never wired into the pipeline), so removing Files leaves the
+Documents surface entirely intact.
 
 ### Indexes (RAG containers)
 
@@ -156,25 +150,82 @@ the source's hash and excludes the source itself).
 | POST | `/api/sdk/search` | 🧪 | ✅ |
 | POST | `/api/sdk/indexes/:id/search` | 🧪 | ✅ |
 
-### Collections (app-scoped JSON document store)
+### Collections — ❌ removed 2026-05-11
 
-Mongo-style document buckets the agent uses for typed working memory
-(lists of leads, scraped rows, normalized records). Distinct from
-`indexes` (vector RAG) and from `data` (per-run scratch). Filter
-operators: `$gt`, `$gte`, `$lt`, `$lte`, `$ne`, `$in`. Callbacks
-(`.onInsert` / `.onUpdate` / `.onRemove` / `.onQuery`) are JS-only
-and have no SDK equivalent — they're session-scoped goja hooks that
-fire inside the same agent run that registered them.
+Removed by the positioning rewrite. Customer persistent structured records
+belong in the customer's backend (PocketBase / Supabase / their own
+Postgres), exposed to the agent via MCP. The `/api/sdk/collections` surface
+is gone in migration `00060_drop_collection_primitives.sql`; the
+`internal/collections/` package and `sandbox/pack_collections*` were
+deleted in the same wave. Agent working memory now lives in
+`memory_stores` (Stage 2 of the composable-primitives plan).
+
+### Secret vaults (envelope-encrypted, app-scoped)
+
+App-scoped vaults of named secrets the agent can read via the sandbox
+`secret(name)` primitive when its session is pinned to a vault
+(Stage 3 of the composable-primitives plan). Storage is envelope
+encryption: a per-row DEK (AES-256-GCM) wrapped with the platform
+KEK (`TAVORA_SECRET_KEK` today; KMS adapter behind `secrets.Sealer`
+later). The SDK API NEVER returns plaintext — set takes a value and
+returns the redacted view (name, kek_id, timestamps); list returns
+the same redacted view in bulk; there's no get-plaintext endpoint
+by design. The only way to retrieve a value is from inside a
+running agent session that pinned the vault. Endpoints return 503
+when `TAVORA_SECRET_KEK` is unset.
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
-| GET | `/api/sdk/collections` | 🧪 | ✅ |
-| POST | `/api/sdk/collections` | 🧪 | ✅ |
-| DELETE | `/api/sdk/collections/:name` | 🧪 | ✅ |
-| POST | `/api/sdk/collections/:name/documents` | 🧪 | ✅ |
-| POST | `/api/sdk/collections/:name/find` | 🧪 | ✅ |
-| POST | `/api/sdk/collections/:name/update` | 🧪 | ✅ |
-| POST | `/api/sdk/collections/:name/remove` | 🧪 | ✅ |
+| POST | `/api/sdk/secret-vaults` | 🧪 | ✅ |
+| GET | `/api/sdk/secret-vaults` | 🧪 | ✅ |
+| GET | `/api/sdk/secret-vaults/:id` | 🧪 | ✅ |
+| PATCH | `/api/sdk/secret-vaults/:id` | 🧪 | ✅ |
+| DELETE | `/api/sdk/secret-vaults/:id` | 🧪 | ✅ |
+| GET | `/api/sdk/secret-vaults/:id/secrets` | 🧪 | ✅ |
+| PUT | `/api/sdk/secret-vaults/:id/secrets/:name` | 🧪 | ✅ |
+| DELETE | `/api/sdk/secret-vaults/:id/secrets/:name` | 🧪 | ✅ |
+
+### Tenants (the one-line facade)
+
+Stage 5 of the composable-primitives plan. Customers pass an opaque
+`tenant_ref` string on session create and the platform isolates state
+(memory, secrets, audit, future rate limits) behind it. The platform
+never models the customer's user/org schema — the ref is opaque,
+UTF-8, 1–256 bytes. First touch lazy-creates a per-tenant memory store
+and secret vault and records a `tenant_pins` row; later sessions with
+the same ref resolve to the same state. Customers who'd rather pre-
+provision (e.g. backfill from their own user table) use the explicit
+endpoints below. Anything the facade auto-does, the primitive APIs can
+also do — the facade is pure sugar.
+
+| Method | Path | Go SDK | TS SDK |
+|---|---|---|---|
+| POST | `/api/sdk/tenants` | 🧪 | ✅ |
+| GET | `/api/sdk/tenants` | 🧪 | ✅ |
+| GET | `/api/sdk/tenants/:ref` | 🧪 | ✅ |
+| PATCH | `/api/sdk/tenants/:ref` | 🧪 | ✅ |
+| DELETE | `/api/sdk/tenants/:ref` | 🧪 | ✅ |
+
+### Memory stores (app-scoped persistent key-value buckets)
+
+Named, app-scoped KV buckets the agent can pin via `memory_store_id` on
+session create (Stage 2 of the composable-primitives plan). Distinct
+from legacy per-session `agent_memory` (which dies with the session)
+and from `collections` (JSON document buckets). Each entry is a
+`(memory_store_id, key) → value` row; entries cascade-delete with their
+store. Sessions that don't pin a `memory_store_id` keep using the
+legacy per-session memory path — the new tables coexist with the old.
+
+| Method | Path | Go SDK | TS SDK |
+|---|---|---|---|
+| POST | `/api/sdk/memory-stores` | 🧪 | ✅ |
+| GET | `/api/sdk/memory-stores` | 🧪 | ✅ |
+| GET | `/api/sdk/memory-stores/:id` | 🧪 | ✅ |
+| PATCH | `/api/sdk/memory-stores/:id` | 🧪 | ✅ |
+| DELETE | `/api/sdk/memory-stores/:id` | 🧪 | ✅ |
+| GET | `/api/sdk/memory-stores/:id/entries` | 🧪 | ✅ |
+| PUT | `/api/sdk/memory-stores/:id/entries/:key` | 🧪 | ✅ |
+| DELETE | `/api/sdk/memory-stores/:id/entries/:key` | 🧪 | ✅ |
 
 ### Chat + Conversations
 
