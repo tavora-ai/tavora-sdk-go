@@ -45,7 +45,7 @@ func TestCreatePromptTemplate(t *testing.T) {
 	tmpl, err := ts.client().CreatePromptTemplate(context.Background(), CreatePromptTemplateInput{
 		Name:      "sales-bot",
 		Content:   "You help with sales.",
-		Variables: []string{"product_name"},
+		Variables: []string{"app_name"},
 	})
 	assertNoError(t, err)
 	assertEqual(t, "id", tmpl.ID, "pt_new")

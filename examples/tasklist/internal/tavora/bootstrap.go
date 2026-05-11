@@ -1,11 +1,11 @@
 // Package tavora registers the example's MCP server with the Tavora
-// product the example's API key is scoped to. Idempotent: running the
+// app the example's API key is scoped to. Idempotent: running the
 // example twice does not create duplicates.
 //
-// The agent runtime auto-loads every enabled MCP server in a product
+// The agent runtime auto-loads every enabled MCP server in an app
 // (see internal/agent/mcp.go:30 in tavora-go), so no per-agent binding is
 // needed — registration alone makes the tools available to every agent
-// in the product.
+// in the app.
 package tavora
 
 import (
@@ -18,7 +18,7 @@ import (
 )
 
 // ServerName is the name under which we register the MCP server in the
-// product. Used as the idempotency key.
+// app. Used as the idempotency key.
 const ServerName = "tasklist-example"
 
 // EnsureMCPServer registers (or re-registers) the tasklist MCP server with

@@ -10,7 +10,7 @@ import (
 // EvalCase represents an eval test case.
 type EvalCase struct {
 	ID            string          `json:"id"`
-	ProductID       string          `json:"product_id"`
+	AppID       string          `json:"app_id"`
 	Name          string          `json:"name"`
 	Description   string          `json:"description"`
 	SetName       string          `json:"set_name"`

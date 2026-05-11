@@ -25,8 +25,8 @@ transport) that exposes six tools:
 
 On startup the example calls `client.CreateMCPServer(...)` once —
 registering the URL, transport, and a Bearer auth config with the Tavora
-product the API key is scoped to. After that, every agent run in the
-product auto-discovers these tools (see `internal/agent/mcp.go` in the
+app the API key is scoped to. After that, every agent run in the
+app auto-discovers these tools (see `internal/agent/mcp.go` in the
 main repo — `mcpSvc.LoadSandboxPacks` dials each enabled MCP server,
 lists its tools, and exposes them inside the Goja sandbox as
 `require('<server-name>').<tool>(args)`). No per-agent wiring.
@@ -60,7 +60,7 @@ pass a webhook-skill name in `CreateAgentSession.Tools` you get
    task dev
    ```
 2. Sign in at http://localhost:8080, open `/platform`, mint an API key
-   for your product.
+   for your app.
 3. Export env vars and run the example:
    ```
    export TAVORA_URL=http://localhost:8080
@@ -75,7 +75,7 @@ pass a webhook-skill name in `CreateAgentSession.Tools` you get
 | Var | Default | Notes |
 |---|---|---|
 | `TAVORA_URL` | — | Tavora backend base URL |
-| `TAVORA_API_KEY` | — | Product-scoped API key (`tvr_...`) |
+| `TAVORA_API_KEY` | — | App-scoped API key (`tvr_...`) |
 | `APP_PORT` | `8090` | Port the example listens on |
 | `APP_PUBLIC_URL` | `http://localhost:$APP_PORT` | Base URL Tavora uses to reach the example's `/mcp` endpoint — set to an ngrok/cloudflared URL when pointing at a hosted Tavora |
 | `APP_DB` | `tasklist.db` | SQLite file path; `:memory:` for ephemeral |
@@ -120,12 +120,12 @@ examples/tasklist/
 
 ## Caveats
 
-- **Product-wide tool visibility.** Because Tavora loads MCP servers at
-  the product level (not per-agent), every agent in this product will
+- **App-wide tool visibility.** Because Tavora loads MCP servers at
+  the app level (not per-agent), every agent in this app will
   see the tasklist tools. Fine for a demo; for production Tavora would
   need per-version MCP binding (analogous to `AgentVersion.skills_json`).
 - **Single-tenant store.** The example's SQLite DB is not per-Tavora-
-  product. One example process = one logical task-list namespace.
+  app. One example process = one logical task-list namespace.
 - **No auth on the example's own web UI.** It's a dev toy.
 - **Deliberately out of scope:** multi-user auth, session persistence,
   versioned agents, evals, policies, production deployment.

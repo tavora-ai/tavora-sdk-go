@@ -14,7 +14,7 @@ import (
 // values for servers that were registered but never Tested.
 type MCPServer struct {
 	ID           string          `json:"id"`
-	ProductID  string          `json:"product_id"`
+	AppID  string          `json:"app_id"`
 	Name         string          `json:"name"`
 	URL          string          `json:"url"`
 	Transport    string          `json:"transport"`

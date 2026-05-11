@@ -73,12 +73,12 @@ func run() error {
 	client := tavora.NewClient(url, key)
 	ctx := context.Background()
 
-	// Show product info
-	ws, err := client.GetProduct(ctx)
+	// Show app info
+	ws, err := client.GetApp(ctx)
 	if err != nil {
-		return fmt.Errorf("getting product: %w", err)
+		return fmt.Errorf("getting app: %w", err)
 	}
-	fmt.Printf("Product: %s (%s)\n\n", ws.Name, ws.ID)
+	fmt.Printf("App: %s (%s)\n\n", ws.Name, ws.ID)
 
 	var storeID string
 

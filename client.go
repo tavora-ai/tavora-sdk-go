@@ -1,7 +1,7 @@
 // Package tavora provides a Go SDK for the Tavora API.
 //
 // All SDK operations are scoped to a space via the API key used to create the client.
-// API keys are created in the admin UI under Product Settings.
+// API keys are created in the admin UI under App Settings.
 package tavora
 
 import (

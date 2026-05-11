@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-// Collection identifies a product-scoped JSON document collection
+// Collection identifies an app-scoped JSON document collection
 // and reports its current document count.
 type Collection struct {
 	Name  string `json:"name"`
@@ -49,7 +49,7 @@ type RemoveCollectionInput struct {
 	Filter map[string]any `json:"filter"`
 }
 
-// ListCollections returns every collection in the product with its
+// ListCollections returns every collection in the app with its
 // current document count.
 func (c *Client) ListCollections(ctx context.Context) ([]Collection, error) {
 	var resp struct {

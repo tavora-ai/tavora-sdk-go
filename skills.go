@@ -10,7 +10,7 @@ import (
 // Skill represents a custom tool definition.
 type Skill struct {
 	ID          string          `json:"id"`
-	ProductID     string          `json:"product_id"`
+	AppID     string          `json:"app_id"`
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
 	Type        string          `json:"type"`

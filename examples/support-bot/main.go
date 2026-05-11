@@ -98,12 +98,12 @@ func run() error {
 	client := tavora.NewClient(url, key)
 	ctx := context.Background()
 
-	// Show product
-	ws, err := client.GetProduct(ctx)
+	// Show app
+	ws, err := client.GetApp(ctx)
 	if err != nil {
 		return fmt.Errorf("connecting to Tavora: %w", err)
 	}
-	fmt.Printf("Connected to product: %s\n", ws.Name)
+	fmt.Printf("Connected to app: %s\n", ws.Name)
 
 	// Upload docs if needed
 	if docsDir != "" {

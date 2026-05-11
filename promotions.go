@@ -10,7 +10,7 @@ import (
 // gates agent version promotions.
 type EvalSuite struct {
 	ID              string    `json:"id"`
-	ProductID     string    `json:"product_id"`
+	AppID     string    `json:"app_id"`
 	AgentID         *string   `json:"agent_id"`
 	Name            string    `json:"name"`
 	Description     string    `json:"description"`

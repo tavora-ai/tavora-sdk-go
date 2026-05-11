@@ -11,7 +11,7 @@ func TestCreateAgentConfig(t *testing.T) {
 	ts := newTestServer(t)
 	ts.on(http.MethodPost, "/api/sdk/agent-configs", 201, AgentConfig{
 		ID:          "ag_new",
-		ProductID: "ws_1",
+		AppID: "ws_1",
 		Name:        "Revenue Bot",
 		Description: "drafts outreach",
 	})

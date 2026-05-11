@@ -2,8 +2,8 @@ package tavora
 
 import "context"
 
-// ProductMetrics contains aggregated metrics for a space.
-type ProductMetrics struct {
+// AppMetrics contains aggregated metrics for a space.
+type AppMetrics struct {
 	Tokens TokenMetrics `json:"tokens"`
 	Agents AgentMetrics `json:"agents"`
 	Evals  EvalMetrics  `json:"evals"`
@@ -36,8 +36,8 @@ type EvalMetrics struct {
 }
 
 // GetMetrics returns aggregated metrics for the space.
-func (c *Client) GetMetrics(ctx context.Context) (*ProductMetrics, error) {
-	var m ProductMetrics
+func (c *Client) GetMetrics(ctx context.Context) (*AppMetrics, error) {
+	var m AppMetrics
 	if err := c.get(ctx, "/api/sdk/metrics", &m); err != nil {
 		return nil, err
 	}

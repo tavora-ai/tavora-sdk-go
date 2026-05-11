@@ -64,7 +64,7 @@ func (c *Client) ChatCompletion(ctx context.Context, input ChatCompletionInput) 
 // Conversation represents a server-side conversation container.
 type Conversation struct {
 	ID           string          `json:"id"`
-	ProductID      string          `json:"product_id"`
+	AppID      string          `json:"app_id"`
 	Title        string          `json:"title"`
 	SystemPrompt string          `json:"system_prompt"`
 	Model        string          `json:"model"`

@@ -1,4 +1,4 @@
-// Collections example — demonstrates the product-scoped JSON
+// Collections example — demonstrates the app-scoped JSON
 // document store via the Tavora SDK.
 //
 // Collections are mongo-style document buckets the agent uses for typed
@@ -15,7 +15,7 @@
 //  6. Remove matching docs
 //  7. List + drop
 //
-// Run it against a fresh product so the bucket names don't collide.
+// Run it against a fresh app so the bucket names don't collide.
 //
 // Usage:
 //
@@ -141,7 +141,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("list: %w", err)
 	}
-	fmt.Printf("\nProduct collections:\n")
+	fmt.Printf("\nApp collections:\n")
 	for _, c := range colls {
 		fmt.Printf("  %-20s %d docs\n", c.Name, c.Count)
 	}
