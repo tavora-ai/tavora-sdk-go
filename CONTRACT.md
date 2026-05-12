@@ -255,6 +255,13 @@ The `CreateAgentSession` input on both SDKs accepts an optional
 
 ### Agent configs (versioned agents, Phase 11)
 
+Live config (persona, skills, stores, provider, model) lives on the
+agent row directly since the PR3 agent-simplification ship. The
+draft+publish flow replaces the old propose-and-approve promotion
+state machine — see `docs/agent-simplification-plan.md` in tavora-go.
+`agent_versions` rows are now append-only history snapshots, written
+on each publish.
+
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
 | POST | `/api/sdk/agent-configs` | 🧪 | ✅ |
@@ -266,8 +273,13 @@ The `CreateAgentSession` input on both SDKs accepts an optional
 | POST | `/api/sdk/agent-configs/:id/versions` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/versions` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/versions/:vid` | 🧪 | ✅ |
-| POST | `/api/sdk/agent-configs/:id/deployments` | 🧪 | ✅ |
-| GET | `/api/sdk/agent-configs/:id/deployments` | 🧪 | ✅ |
+| PATCH | `/api/sdk/agent-configs/:id/draft` | 🧪 | ✅ |
+| DELETE | `/api/sdk/agent-configs/:id/draft` | 🧪 | ✅ |
+| POST | `/api/sdk/agent-configs/:id/publish` | 🧪 | ✅ |
+| POST | `/api/sdk/agent-configs/:id/revert` | 🧪 | ✅ |
+| PATCH | `/api/sdk/agent-configs/:id/settings` | 🧪 | ✅ |
+| POST | `/api/sdk/agent-configs/:id/eval-runs` | 🧪 | ✅ |
+| GET | `/api/sdk/agent-configs/:id/eval-runs` | 🧪 | ✅ |
 
 ### MCP servers
 
@@ -301,6 +313,7 @@ SDK method if a CLI consumer needs offline validation.
 | GET | `/api/sdk/scheduled-runs` | 🧪 | ✅ |
 | POST | `/api/sdk/scheduled-runs` | 🧪 | ✅ |
 | GET | `/api/sdk/scheduled-runs/:id` | 🧪 | ✅ |
+| PATCH | `/api/sdk/scheduled-runs/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/scheduled-runs/:id` | 🧪 | ✅ |
 
 ### Evals
@@ -310,6 +323,7 @@ SDK method if a CLI consumer needs offline validation.
 | GET | `/api/sdk/evals` | 🧪 | ✅ |
 | POST | `/api/sdk/evals` | 🧪 | ✅ |
 | GET | `/api/sdk/evals/:id` | 🧪 | ✅ |
+| PATCH | `/api/sdk/evals/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/evals/:id` | 🧪 | ✅ |
 | POST | `/api/sdk/evals/run` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-runs` | 🧪 | ✅ |
@@ -323,15 +337,12 @@ SDK method if a CLI consumer needs offline validation.
 | POST | `/api/sdk/eval-suites/:id/versions` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-suites/:id/versions` | 🧪 | ✅ |
 
-### Promotions (Phase 12)
+### Promotions — ❌ removed 2026-05-12
 
-| Method | Path | Go SDK | TS SDK |
-|---|---|---|---|
-| GET | `/api/sdk/promotions/pending` | 🧪 | ✅ |
-| POST | `/api/sdk/promotions` | 🧪 | ✅ |
-| GET | `/api/sdk/promotions/:id` | 🧪 | ✅ |
-| POST | `/api/sdk/promotions/:id/approve` | 🧪 | ✅ |
-| POST | `/api/sdk/promotions/:id/reject` | 🧪 | ✅ |
+Removed by the agent-simplification ship. The propose/approve/reject
+state machine was retired in favor of the draft+publish flow on
+`/api/sdk/agent-configs/:id/{draft,publish,revert}`. See those rows
+under "Agent configs" above.
 
 ### Tool policies + approvals (Phase 14)
 

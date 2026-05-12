@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"sync"
 	"testing"
 )
@@ -12,9 +13,10 @@ import (
 // recordedRequest captures what the SDK sent to the server.
 type recordedRequest struct {
 	Method string
-	Path   string
+	Path   string // request URI (path + raw query)
 	Body   string
 	Header http.Header
+	URL    *url.URL
 }
 
 // testServer is a lightweight httptest wrapper that records requests and
@@ -60,11 +62,13 @@ func (ts *testServer) onRaw(method, path string, status int, raw string) {
 func (ts *testServer) handler(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
 	ts.mu.Lock()
+	urlCopy := *r.URL
 	ts.requests = append(ts.requests, recordedRequest{
 		Method: r.Method,
 		Path:   r.RequestURI,
 		Body:   string(body),
 		Header: r.Header.Clone(),
+		URL:    &urlCopy,
 	})
 	route, ok := ts.routes[r.Method+" "+r.URL.Path]
 	ts.mu.Unlock()

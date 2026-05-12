@@ -119,6 +119,21 @@ func (c *Client) delete(ctx context.Context, path string) error {
 	return checkError(resp)
 }
 
+// deleteWithResult is DELETE-but-the-server-returns-a-body. Used by
+// endpoints like /agent-configs/:id/draft where the response is the
+// post-delete state of the resource.
+func (c *Client) deleteWithResult(ctx context.Context, path string, result interface{}) error {
+	req := c.resty.R().SetContext(ctx)
+	if result != nil {
+		req.SetResult(result)
+	}
+	resp, err := req.Delete(path)
+	if err != nil {
+		return fmt.Errorf("tavora: request failed: %w", err)
+	}
+	return checkError(resp)
+}
+
 func (c *Client) upload(ctx context.Context, path, filePath string, fields map[string]string, result interface{}) error {
 	req := c.resty.R().
 		SetContext(ctx).

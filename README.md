@@ -46,15 +46,14 @@ or trace any request.
 |---|---|
 | **App** | `GetApp` |
 | **Agents — sessions** | `CreateAgentSession`, `ListAgentSessions`, `GetAgentSession`, `DeleteAgentSession`, `RunAgent`, `GetAgentSystemPrompt` |
-| **Agents — configs + versions** | `CreateAgentConfig`, `ListAgentConfigs`, `Get/Update/DeleteAgentConfig`, `SetActiveAgentVersion` |
-| **Agent versions + deployments** | `CreateAgentVersion`, `ListAgentVersions`, `GetAgentVersion`, `UpsertAgentDeployment`, `ListAgentDeployments` |
+| **Agents — configs + history** | `CreateAgentConfig`, `ListAgentConfigs`, `Get/Update/DeleteAgentConfig`, `UpdateAgentDraft`, `DiscardAgentDraft`, `PublishAgent`, `RevertAgent`, `UpdateAgentSettings`, `RunAgentEval`, `ListAgentEvalRuns` |
+| **Agent versions** | `CreateAgentVersion`, `ListAgentVersions`, `GetAgentVersion`, `SetActiveAgentVersion` |
 | **Skills** | `CreateSkill`, `ListSkills`, `GetSkill`, `DeleteSkill` |
 | **MCP servers** | `CreateMCPServer`, `ListMCPServers`, `GetMCPServer`, `UpdateMCPServer`, `DeleteMCPServer`, `TestMCPServer` |
-| **Storage** | `UploadFile`, `ListFiles`, `GetFile`, `GetFileContent`, `DeleteFile`, `DeleteFileHard` |
 | **Indexes** (RAG containers) | `CreateIndex`, `ListIndexes`, `GetIndex`, `UpdateIndex`, `DeleteIndex` |
 | **Documents** (RAG-indexed) | `UploadDocument`, `GetDocument`, `GetDocumentByName`, `ListDocuments`, `ListDocumentVersions`, `DeleteDocument`, `DeleteDocumentHard`, `Search`, `SearchDocuments` |
 | **Chat** | `ChatCompletion`, `CreateConversation`, `SendMessage`, `Get/List/DeleteConversation` |
-| **Evals + Promotions** | `CreateSuite`, `RunEval`, `ProposePromotion`, `ApprovePromotion`, … |
+| **Evals** | `CreateSuite`, `NewSuiteVersion`, `CreateEvalCase`, `RunEval`, `ListEvalRuns`, … |
 | **Policies** | `UpsertToolPolicy`, `ApproveApprovalRequest`, … |
 | **Studio** | `GetStudioTrace`, `ReplayFromStep`, `AnalyzeFix` |
 
