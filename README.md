@@ -54,7 +54,6 @@ or trace any request.
 | **Documents** (RAG-indexed) | `UploadDocument`, `GetDocument`, `GetDocumentByName`, `ListDocuments`, `ListDocumentVersions`, `DeleteDocument`, `DeleteDocumentHard`, `Search`, `SearchDocuments` |
 | **Chat** | `ChatCompletion`, `CreateConversation`, `SendMessage`, `Get/List/DeleteConversation` |
 | **Evals** | `CreateSuite`, `NewSuiteVersion`, `CreateEvalCase`, `RunEval`, `ListEvalRuns`, … |
-| **Policies** | `UpsertToolPolicy`, `ApproveApprovalRequest`, … |
 | **Studio** | `GetStudioTrace`, `ReplayFromStep`, `AnalyzeFix` |
 
 Full reference at [docs.tavora.ai/sdk](https://docs.tavora.ai/sdk/).

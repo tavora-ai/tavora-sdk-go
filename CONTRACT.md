@@ -344,16 +344,14 @@ state machine was retired in favor of the draft+publish flow on
 `/api/sdk/agent-configs/:id/{draft,publish,revert}`. See those rows
 under "Agent configs" above.
 
-### Tool policies + approvals (Phase 14)
+### Tool policies + approvals — ❌ removed 2026-05-13
 
-| Method | Path | Go SDK | TS SDK |
-|---|---|---|---|
-| GET | `/api/sdk/tool-policies` | 🧪 | ✅ |
-| PUT | `/api/sdk/tool-policies` | 🧪 | ✅ |
-| DELETE | `/api/sdk/tool-policies/:id` | 🧪 | ✅ |
-| GET | `/api/sdk/approval-requests/pending` | 🧪 | ✅ |
-| POST | `/api/sdk/approval-requests/:id/approve` | 🧪 | ✅ |
-| POST | `/api/sdk/approval-requests/:id/reject` | 🧪 | ✅ |
+Removed by the MVP slim-down (`docs/mvp-slimdown-plan.md` Step 2).
+The `internal/policy/` Go package, the SDK methods, the
+`PoliciesPage` + `ApprovalsPage` admin surfaces, and the
+`tool_policies` + `approval_requests` tables are all deleted.
+The sandbox runs tools without a policy gate. The Advisor
+(`internal/advisor/`) and its rules engine went with this pass.
 
 ### Prompt templates
 
@@ -384,8 +382,9 @@ under "Agent configs" above.
 
 **Method coverage: parity (2026-05-04).** Every endpoint exposed by the
 Go SDK has a corresponding TS SDK method. The historical ~70% Go-only
-gap (agent configs, evals, policies/approvals, scheduled runs, prompt
-templates, studio, audit) closed in this pass.
+gap (agent configs, evals, scheduled runs, prompt templates, studio,
+audit) closed in this pass. Tool policies + approvals were removed
+entirely on 2026-05-13 (see above).
 
 **Test coverage: Vitest landed for documents + errors (2026-05-05).**
 The TS SDK now has Vitest configured (`vitest.config.ts`,
@@ -397,7 +396,7 @@ structured-error round-trip). The errors module has its own tests for
 `pnpm test`.
 
 Remaining gaps (other endpoint families — agent configs, evals,
-policies, audit) still lean on the Go SDK as the only tested path;
+audit) still lean on the Go SDK as the only tested path;
 adding TS tests for those is future work, but the Vitest infra is now
 in place so each landing is one file rather than a project setup.
 
