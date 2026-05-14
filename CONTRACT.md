@@ -280,6 +280,10 @@ on each publish.
 | PATCH | `/api/sdk/agent-configs/:id/settings` | 🧪 | ✅ |
 | POST | `/api/sdk/agent-configs/:id/eval-runs` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/eval-runs` | 🧪 | ✅ |
+| GET | `/api/sdk/agent-configs/:id/eval-suite` | ❌ | ❌ |
+| POST | `/api/sdk/agent-configs/:id/eval-suite/cases` | ❌ | ❌ |
+| PATCH | `/api/sdk/agent-configs/:id/eval-suite/cases/:cid` | ❌ | ❌ |
+| DELETE | `/api/sdk/agent-configs/:id/eval-suite/cases/:cid` | ❌ | ❌ |
 
 ### MCP servers
 
