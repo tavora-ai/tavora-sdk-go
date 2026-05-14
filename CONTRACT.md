@@ -284,6 +284,7 @@ on each publish.
 | POST | `/api/sdk/agent-configs/:id/eval-suite/cases` | ❌ | ❌ |
 | PATCH | `/api/sdk/agent-configs/:id/eval-suite/cases/:cid` | ❌ | ❌ |
 | DELETE | `/api/sdk/agent-configs/:id/eval-suite/cases/:cid` | ❌ | ❌ |
+| POST | `/api/sdk/agent-configs/:id/eval-suite/cases/extract-from-session` | ❌ | ❌ |
 
 ### MCP servers
 
