@@ -1,20 +1,21 @@
 # Test: Upload docs and ask a single question (non-interactive mode).
 #
 # Verifies the support-bot workflow:
-#   1. Connects to space
+#   1. Connects to app
 #   2. Uploads support documentation
 #   3. Creates a conversation
 #   4. Asks one question with RAG and gets a response
 
 exec support-bot --docs support-docs --question 'How do I reset my password?'
 
-# Should connect to space
-stdout 'Connected to space:'
+# Should connect to app
+stdout 'Connected to app:'
 
 # Should upload files
-stderr 'Uploading'
-stderr 'OK'
-stderr 'done'
+stdout 'Uploading'
+stdout 'OK'
+stdout 'Processing'
+stdout 'done'
 
 # Should create conversation
 stdout 'Conversation:'

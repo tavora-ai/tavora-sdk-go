@@ -1,12 +1,12 @@
 # Test: Search-only mode (no upload).
 #
 # Verifies that knowledge-base can search without uploading,
-# using whatever documents already exist in the space.
+# using whatever documents already exist in the app.
 
 exec knowledge-base --query 'getting started'
 
-# Should show space info
-stdout 'Space:'
+# Should show app info
+stdout 'App:'
 
 # Should show search output (results or "No results found")
 stdout 'Searching:'

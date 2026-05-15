@@ -9,13 +9,13 @@
 # Upload documents from the testdata directory
 exec knowledge-base --dir docs --query 'password reset'
 
-# Should show space info
-stdout 'Space:'
+# Should show app info
+stdout 'App:'
 
 # Should confirm store creation and file uploads
-stderr 'Creating store:'
-stderr 'uploaded'
-stderr 'done'
+stdout 'Creating store:'
+stdout 'uploaded'
+stdout 'done'
 
 # Should show search results with scores
 stdout 'score:'

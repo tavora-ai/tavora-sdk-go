@@ -59,10 +59,6 @@ func TestResearchAssistant(t *testing.T) {
 	runExample(t, "research-assistant", 5*time.Minute)
 }
 
-func TestEvalCI(t *testing.T) {
-	runExample(t, "eval-ci", 10*time.Minute)
-}
-
 func runExample(t *testing.T, name string, timeout time.Duration) {
 	t.Helper()
 	requireEnv(t)

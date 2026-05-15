@@ -122,8 +122,9 @@ func uploadDir(ctx context.Context, client *tavora.Client, dir string) (string, 
 		return "", fmt.Errorf("no uploadable files found in %s (supported: pdf, md, txt, csv)", dir)
 	}
 
-	// Create store named after the directory
-	colName := filepath.Base(dir)
+	// Create store named after the directory, with a timestamp suffix so
+	// re-runs against the same app don't collide on the unique-name constraint.
+	colName := filepath.Base(dir) + "-" + time.Now().Format("20060102-1504")
 	fmt.Printf("Creating store: %s\n", colName)
 	col, err := client.CreateIndex(ctx, tavora.CreateIndexInput{
 		Name:        colName,
