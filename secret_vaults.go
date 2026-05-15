@@ -1,14 +1,15 @@
-// Package tavora — secret vaults (Stage 3 of the composable-primitives
-// plan in tavora-go). Envelope-encrypted, app-scoped vaults of named
-// secrets the agent reads via `secret(name)` in the sandbox when its
-// session is pinned to a vault.
+// Package tavora — secret vaults. Envelope-encrypted, app-scoped
+// vaults of named credentials. Each app designates one vault
+// (PUT /api/sdk/app/vault); the LLM resolver reads provider keys
+// (openai_api_key, anthropic_api_key, gemini_api_key, …) and the
+// Brave pack reads brave_api_key from it on every dispatch. The
+// agent's JS sandbox cannot read secrets directly — credentials
+// are tool-internal.
 //
 // The SDK never returns plaintext. Set takes a value, encrypts it
 // server-side, and returns the redacted view (name + kek_id +
 // timestamps). List returns the same redacted shape. There is no
-// "get plaintext" endpoint by design — the only way to retrieve a
-// secret value is from inside a running agent session that pinned
-// the vault.
+// "get plaintext" endpoint by design.
 //
 // Endpoints return 503 when the server has no `TAVORA_SECRET_KEK`
 // configured (secret vaults disabled).

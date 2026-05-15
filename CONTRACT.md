@@ -48,16 +48,19 @@ package on the server side.
 | GET | `/api/sdk/app` | 🧪 | ✅ |
 | GET | `/api/sdk/metrics` | 🧪 | ✅ |
 | POST | `/api/sdk/app/seed` | 🧪 | ✅ |
-| PUT | `/api/sdk/app/llm-vault` | ⏳ | ⏳ |
+| PUT | `/api/sdk/app/vault` | ⏳ | ⏳ |
 
-The `/api/sdk/app/llm-vault` endpoint designates which of the app's
-secret_vaults sources LLM provider credentials. When set, the runtime
-LLM resolver reads keys by convention (`openai_api_key`,
-`anthropic_api_key`, `gemini_api_key`, `openrouter_api_key`,
-`edenai_api_key`, `ollama_base_url`) from that vault per call, falling
-back to the server-wide env vars for any provider not in the vault.
-Cached for 60 s per (app, provider). This is what flips the
-*"BYO model keys"* claim from gated to live.
+The `/api/sdk/app/vault` endpoint designates one of the app's
+secret_vaults as the source of tool credentials. When set, the runtime
+LLM resolver reads provider keys by convention
+(`openai_api_key`, `anthropic_api_key`, `gemini_api_key`,
+`openrouter_api_key`, `edenai_api_key`, `ollama_base_url`) and the
+Brave search pack reads `brave_api_key` from the same vault. Falls
+back to server-wide env vars for any LLM provider not in the vault.
+Brave web search is unavailable when no vault is designated. Cached
+for 60 s per (app, provider). The vault is read **internally by
+tools** — the agent's JS sandbox does not have a `secret(name)`
+primitive (removed in §9d Q9.1 of the MVP slim-down plan).
 
 ### Storage / Files — ❌ removed 2026-05-11
 
@@ -184,48 +187,6 @@ when `TAVORA_SECRET_KEK` is unset.
 | GET | `/api/sdk/secret-vaults/:id/secrets` | 🧪 | ✅ |
 | PUT | `/api/sdk/secret-vaults/:id/secrets/:name` | 🧪 | ✅ |
 | DELETE | `/api/sdk/secret-vaults/:id/secrets/:name` | 🧪 | ✅ |
-
-### Tenants (the one-line facade)
-
-Stage 5 of the composable-primitives plan. Customers pass an opaque
-`tenant_ref` string on session create and the platform isolates state
-(memory, secrets, audit, future rate limits) behind it. The platform
-never models the customer's user/org schema — the ref is opaque,
-UTF-8, 1–256 bytes. First touch lazy-creates a per-tenant memory store
-and secret vault and records a `tenant_pins` row; later sessions with
-the same ref resolve to the same state. Customers who'd rather pre-
-provision (e.g. backfill from their own user table) use the explicit
-endpoints below. Anything the facade auto-does, the primitive APIs can
-also do — the facade is pure sugar.
-
-| Method | Path | Go SDK | TS SDK |
-|---|---|---|---|
-| POST | `/api/sdk/tenants` | 🧪 | ✅ |
-| GET | `/api/sdk/tenants` | 🧪 | ✅ |
-| GET | `/api/sdk/tenants/:ref` | 🧪 | ✅ |
-| PATCH | `/api/sdk/tenants/:ref` | 🧪 | ✅ |
-| DELETE | `/api/sdk/tenants/:ref` | 🧪 | ✅ |
-
-### Memory stores (app-scoped persistent key-value buckets)
-
-Named, app-scoped KV buckets the agent can pin via `memory_store_id` on
-session create (Stage 2 of the composable-primitives plan). Distinct
-from legacy per-session `agent_memory` (which dies with the session)
-and from `collections` (JSON document buckets). Each entry is a
-`(memory_store_id, key) → value` row; entries cascade-delete with their
-store. Sessions that don't pin a `memory_store_id` keep using the
-legacy per-session memory path — the new tables coexist with the old.
-
-| Method | Path | Go SDK | TS SDK |
-|---|---|---|---|
-| POST | `/api/sdk/memory-stores` | 🧪 | ✅ |
-| GET | `/api/sdk/memory-stores` | 🧪 | ✅ |
-| GET | `/api/sdk/memory-stores/:id` | 🧪 | ✅ |
-| PATCH | `/api/sdk/memory-stores/:id` | 🧪 | ✅ |
-| DELETE | `/api/sdk/memory-stores/:id` | 🧪 | ✅ |
-| GET | `/api/sdk/memory-stores/:id/entries` | 🧪 | ✅ |
-| PUT | `/api/sdk/memory-stores/:id/entries/:key` | 🧪 | ✅ |
-| DELETE | `/api/sdk/memory-stores/:id/entries/:key` | 🧪 | ✅ |
 
 ### Chat + Conversations
 

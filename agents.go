@@ -10,11 +10,10 @@ import (
 	"time"
 )
 
-// AgentSession represents a server-side agent session. Pin fields
-// (IndexIDs, MemoryStoreID, SecretVaultID, TenantRef) capture the
-// primitive bindings resolved at session-create time; the runtime
-// uses these to scope every tool call. See `CreateAgentSessionInput`
-// for the input-side shape.
+// AgentSession represents a server-side agent session. IndexIDs
+// captures the retrieval-primitive binding resolved at session-create
+// time; the sandbox scopes every search() call to that set. See
+// `CreateAgentSessionInput` for the input-side shape.
 type AgentSession struct {
 	ID               string          `json:"id"`
 	AppID            string          `json:"app_id"`
@@ -25,9 +24,6 @@ type AgentSession struct {
 	Metadata         json.RawMessage `json:"metadata"`
 	Status           string          `json:"status"`
 	IndexIDs         []string        `json:"index_ids,omitempty"`
-	MemoryStoreID    *string         `json:"memory_store_id,omitempty"`
-	SecretVaultID    *string         `json:"secret_vault_id,omitempty"`
-	TenantRef        *string         `json:"tenant_ref,omitempty"`
 	CreatedAt        time.Time       `json:"created_at"`
 	UpdatedAt        time.Time       `json:"updated_at"`
 	PromptTokens     int64           `json:"prompt_tokens"`
@@ -66,17 +62,10 @@ type AgentSessionDetail struct {
 // SystemPrompt / Tools you also pass. Omit it for an ad-hoc session that
 // uses the inline fields directly.
 //
-// Primitive pinning (composable-primitives plan Stage 4 + Stage 5):
-//   • IndexIDs / MemoryStoreID / SecretVaultID — explicit refs; the
-//     sandbox scopes each tool to the pinned set. Nil/empty = legacy
-//     "no pin" (sandbox `secret()` panics with no vault pinned;
-//     `remember()` uses ephemeral per-session memory; `search()` sees
-//     every index in the app).
-//   • TenantRef — the one-line facade. The platform lazy-resolves
-//     per-tenant primitives behind the ref (auto-creates memory_store +
-//     secret_vault on first touch, records a tenant_pins row).
-//     Explicit refs in the same request override the facade per-field —
-//     caller can mix shared app-level indexes with per-tenant memory.
+// IndexIDs pins the retrieval surface for the session — nil/empty means
+// "every index in the app"; non-empty restricts the sandbox's search()
+// calls to that allowlist. Each id must belong to the caller's app or
+// session creation fails with 400.
 type CreateAgentSessionInput struct {
 	AgentVersionID string          `json:"agent_version_id,omitempty"`
 	Title          string          `json:"title,omitempty"`
@@ -85,10 +74,7 @@ type CreateAgentSessionInput struct {
 	Tools          []string        `json:"tools,omitempty"`
 	Metadata       json.RawMessage `json:"metadata,omitempty"`
 
-	IndexIDs      []string `json:"index_ids,omitempty"`
-	MemoryStoreID string   `json:"memory_store_id,omitempty"`
-	SecretVaultID string   `json:"secret_vault_id,omitempty"`
-	TenantRef     string   `json:"tenant_ref,omitempty"`
+	IndexIDs []string `json:"index_ids,omitempty"`
 }
 
 // AgentEvent represents a step event during agent execution. The `Type`

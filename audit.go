@@ -8,7 +8,10 @@ import (
 	"time"
 )
 
-// TenantAuditEntry is one row from the tenant audit log.
+// TenantAuditEntry is one row from the audit log. The "Tenant" in the
+// type name is historical — the underlying table is `tenant_audit_log`,
+// kept for schema continuity after the tenant facade was removed
+// (see tavora-go docs/mvp-slimdown-plan.md §9).
 type TenantAuditEntry struct {
 	ID             string          `json:"id"`
 	AppID    string          `json:"app_id"`
@@ -79,7 +82,7 @@ func (c *Client) ListAuditLog(ctx context.Context, f AuditListFilter) (*AuditLis
 }
 
 // AuditExportFilter narrows the rows returned by ExportAuditLog. Action +
-// SubjectType mirror the tenant-audit-log viewer so a CI pipeline can export
+// SubjectType mirror the audit-log viewer so a CI pipeline can export
 // the same slice an operator sees in the UI.
 type AuditExportFilter struct {
 	Format      string    // "json" (default) or "csv"
