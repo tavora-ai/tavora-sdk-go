@@ -96,14 +96,23 @@ implement the pause-for-input flow agents trigger via the sandbox.
 
 ## Examples
 
-Working example apps live under [`examples/`](./examples/). Each is a
-self-contained Go module — `cd examples/<name> && go run .`.
+The examples split into two families.
+
+**Code-first agent templates** — full agent definitions (persona,
+skills, evals) plus a thin Go program that runs them. These live
+in a separate repo so the `tavora/` folders inside them are
+copyable as starters and consumable by SDKs in other languages:
+
+- [`tavora-examples`](https://github.com/tavora-ai/tavora-examples) —
+  `research-assistant`, `support-bot`, …
+
+**SDK pattern demos** — focused programs that exercise one corner
+of the SDK API. They live here, under [`examples/`](./examples/);
+each is a self-contained Go module (`cd examples/<name> && go run .`).
 
 | Example | What it shows |
 |---|---|
 | [`chat`](./examples/chat) | Multi-turn agentic REPL — one `AgentSession` reused across turns |
-| [`support-bot`](./examples/support-bot) | RAG-augmented chat over a documents folder using `Conversation` + `SendMessage` |
-| [`research-assistant`](./examples/research-assistant) | Single-turn agent with `search` + `list_indexes` tools |
 | [`knowledge-base`](./examples/knowledge-base) | Document upload, store management, semantic search |
 | [`tasklist`](./examples/tasklist) | End-to-end app template — local SQLite app exposes its domain to a Tavora agent via an MCP server registered through `CreateMCPServer` |
 | [`llm-judge`](./examples/llm-judge) | ~80-line LLM-as-judge primitive — score an answer against a ground-truth value on a 0–10 rubric using Gemini |
