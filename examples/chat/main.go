@@ -1,13 +1,11 @@
 // Agentic chat — demonstrates a multi-turn agent conversation via the
 // Tavora SDK.
 //
-// Unlike examples/support-bot (which uses the stateless Conversation +
-// SendMessage API), this example drives the full agent reasoning loop:
-// every user turn goes through CreateAgentSession → RunAgent, so the
-// model can execute JavaScript in the Goja sandbox, call MCP tools,
-// fetch URLs, and compose multi-step work per turn. The REPL reuses
-// one AgentSession across all turns so the agent remembers prior
-// exchanges.
+// This example drives the full agent reasoning loop: every user turn
+// goes through CreateAgentSession → RunAgent, so the model can
+// execute JavaScript in the Goja sandbox, call MCP tools, fetch URLs,
+// and compose multi-step work per turn. The REPL reuses one
+// AgentSession across all turns so the agent remembers prior exchanges.
 //
 // Usage:
 //
