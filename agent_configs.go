@@ -109,11 +109,13 @@ type EvalRunResult struct {
 }
 
 // --- Input types ---
-
-type CreateAgentConfigInput struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-}
+//
+// CreateAgentConfigInput was removed on 2026-05-16 with the pivot
+// to a Convex-style code-first authoring model: agents land in
+// the database only via SourceSync. CreateAgentConfig was the
+// programmatic entry point on the imperative surface; deleting it
+// means CLI/SDK consumers can't accidentally bypass the
+// `tavora/` folder shape.
 
 // UpdateAgentSettingsInput patches per-agent operator settings.
 // EvalSuiteID="" clears the pin; nil leaves it alone. Same for
@@ -134,14 +136,10 @@ const (
 )
 
 // --- AgentConfig methods ---
-
-func (c *Client) CreateAgentConfig(ctx context.Context, input CreateAgentConfigInput) (*AgentConfig, error) {
-	var out AgentConfig
-	if err := c.post(ctx, "/api/sdk/agent-configs", input, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
+//
+// CreateAgentConfig was removed on 2026-05-16 — see the note on
+// CreateAgentConfigInput above. Use Client.SourceSync (source.go)
+// to create agents through the code-first path.
 
 func (c *Client) ListAgentConfigs(ctx context.Context) ([]AgentConfig, error) {
 	var out []AgentConfig

@@ -47,8 +47,12 @@ package on the server side.
 |---|---|---|---|
 | GET | `/api/sdk/app` | 🧪 | ✅ |
 | GET | `/api/sdk/metrics` | 🧪 | ✅ |
-| POST | `/api/sdk/app/seed` | 🧪 | ✅ |
 | PUT | `/api/sdk/app/vault` | ⏳ | ⏳ |
+
+`/api/sdk/app/seed` was removed on 2026-05-16 with the pivot to a
+Convex-style code-first authoring model: agents are no longer
+auto-seeded server-side. Operators run `tavora init` + `tavora dev`
+to bring an agent into the app via `/api/sdk/source-sync`.
 
 The `/api/sdk/app/vault` endpoint designates one of the app's
 secret_vaults as the source of tool credentials. When set, the runtime
@@ -225,13 +229,9 @@ on each publish.
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
-| POST | `/api/sdk/agent-configs` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id` | 🧪 | ✅ |
-| PATCH | `/api/sdk/agent-configs/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/agent-configs/:id` | 🧪 | ✅ |
-| PUT | `/api/sdk/agent-configs/:id/active-version` | 🧪 | ✅ |
-| POST | `/api/sdk/agent-configs/:id/versions` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/versions` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/versions/:vid` | 🧪 | ✅ |
 | PATCH | `/api/sdk/agent-configs/:id/draft` | 🧪 | ✅ |
@@ -246,6 +246,29 @@ on each publish.
 | PATCH | `/api/sdk/agent-configs/:id/eval-suite/cases/:cid` | ❌ | ❌ |
 | DELETE | `/api/sdk/agent-configs/:id/eval-suite/cases/:cid` | ❌ | ❌ |
 | POST | `/api/sdk/agent-configs/:id/eval-suite/cases/extract-from-session` | ❌ | ❌ |
+
+Code-first source-* endpoints (PUT/POST against `/api/sdk/source-*`)
+are the write path for agents; per-resource POST/PATCH on
+`/api/sdk/agent-configs` was removed on 2026-05-16 when authoring
+moved to the local `tavora/` folder. The remaining `/agent-configs`
+endpoints are read + draft/publish/revert/settings (operator
+control plane), plus DELETE for the rare hard-delete case (`tavora
+delete` calls `/api/sdk/source-delete` instead in normal use).
+
+### Code-first source-*
+
+The write path for code-first agent authoring. The CLI (`tavora dev`
+/ `tavora deploy` / `tavora rename` / `tavora delete`) drives these
+endpoints; the manifest payload mirrors the local `tavora/` folder
+contents.
+
+| Method | Path | Go SDK | TS SDK |
+|---|---|---|---|
+| PUT | `/api/sdk/source-sync` | 🧪 | ✅ |
+| POST | `/api/sdk/source-validate` | 🧪 | ✅ |
+| POST | `/api/sdk/source-deploy` | 🧪 | ✅ |
+| POST | `/api/sdk/source-rename` | 🧪 | ✅ |
+| POST | `/api/sdk/source-delete` | 🧪 | ✅ |
 
 ### MCP servers
 
