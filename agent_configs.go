@@ -45,6 +45,15 @@ type AgentConfig struct {
 	PublishedAt     *time.Time `json:"published_at"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+
+	// Code-first markers, non-nil when the agent is managed by
+	// `tavora dev` from a local tavora/ folder. CodeFirstProject is
+	// the project name from tavora.jsonc; CodeFirstLocalID is the
+	// `id` field in agent.jsonc. SDK callers use these to look up
+	// an agent UUID by local id without having to source-sync first
+	// (`ListAgentConfigs` + filter).
+	CodeFirstProject *string `json:"code_first_project,omitempty"`
+	CodeFirstLocalID *string `json:"code_first_local_id,omitempty"`
 }
 
 // SkillBinding pins a skill at a specific version inside an AgentVersion.
