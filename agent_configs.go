@@ -115,26 +115,6 @@ type CreateAgentConfigInput struct {
 	Description string `json:"description,omitempty"`
 }
 
-type UpdateAgentConfigInput struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-}
-
-// CreateAgentVersionInput creates a new version directly. Less common
-// in the post-simplification world (publish does this automatically);
-// kept for callers that build history snapshots out of band.
-type CreateAgentVersionInput struct {
-	FromVersionID    string         `json:"from_version_id,omitempty"`
-	Semver           string         `json:"semver,omitempty"`
-	PersonaMD        string         `json:"persona_md,omitempty"`
-	Skills           []SkillBinding `json:"skills,omitempty"`
-	Stores           []string       `json:"stores,omitempty"`
-	Provider         string         `json:"provider,omitempty"`
-	Model            string         `json:"model,omitempty"`
-	EvalSuiteID      string         `json:"eval_suite_id,omitempty"`
-	EvalSuiteVersion string         `json:"eval_suite_version,omitempty"`
-}
-
 // UpdateAgentSettingsInput patches per-agent operator settings.
 // EvalSuiteID="" clears the pin; nil leaves it alone. Same for
 // RunEvalOnPublish (nil = leave alone).
@@ -179,39 +159,17 @@ func (c *Client) GetAgentConfig(ctx context.Context, agentID string) (*AgentConf
 	return &out, nil
 }
 
-func (c *Client) UpdateAgentConfig(ctx context.Context, agentID string, input UpdateAgentConfigInput) (*AgentConfig, error) {
-	var out AgentConfig
-	if err := c.patch(ctx, fmt.Sprintf("/api/sdk/agent-configs/%s", agentID), input, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
 func (c *Client) DeleteAgentConfig(ctx context.Context, agentID string) error {
 	return c.delete(ctx, fmt.Sprintf("/api/sdk/agent-configs/%s", agentID))
 }
 
-// SetActiveAgentVersion pins an active version on the AgentConfig. In
-// practice the publish/revert path is what callers want; this is the
-// low-level door for callers that need direct control.
-func (c *Client) SetActiveAgentVersion(ctx context.Context, agentID, versionID string) (*AgentConfig, error) {
-	body := map[string]string{"version_id": versionID}
-	var out AgentConfig
-	if err := c.put(ctx, fmt.Sprintf("/api/sdk/agent-configs/%s/active-version", agentID), body, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
 // --- AgentVersion methods ---
-
-func (c *Client) CreateAgentVersion(ctx context.Context, agentID string, input CreateAgentVersionInput) (*AgentVersion, error) {
-	var out AgentVersion
-	if err := c.post(ctx, fmt.Sprintf("/api/sdk/agent-configs/%s/versions", agentID), input, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
+//
+// UpdateAgentConfig (rename/describe via REST), SetActiveAgentVersion,
+// and CreateAgentVersion (direct version creation) were removed when
+// code-first took over. For renames use SourceRename; for promotion
+// use PublishAgent (UI path) or SourceDeploy (CLI path) — both append
+// a kind='published' row through the same internal path.
 
 func (c *Client) ListAgentVersions(ctx context.Context, agentID string) ([]AgentVersion, error) {
 	var out []AgentVersion
