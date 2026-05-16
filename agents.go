@@ -74,6 +74,15 @@ type CreateAgentSessionInput struct {
 	Tools          []string        `json:"tools,omitempty"`
 	Metadata       json.RawMessage `json:"metadata,omitempty"`
 
+	// AgentID + Target pair drives the "run against staged draft"
+	// path. Set Target="draft" with AgentID = the server agent UUID
+	// to pick up persona+model+skills from agents.draft_config
+	// (populated by the browser editor or by `tavora dev`). Target
+	// is "live" by default; an explicit value other than "live" or
+	// "draft" is rejected.
+	AgentID string `json:"agent_id,omitempty"`
+	Target  string `json:"target,omitempty"`
+
 	IndexIDs []string `json:"index_ids,omitempty"`
 }
 
