@@ -22,14 +22,10 @@ type Skill struct {
 	UpdatedAt   time.Time       `json:"updated_at"`
 }
 
-type CreateSkillInput struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description,omitempty"`
-	Type        string          `json:"type,omitempty"`
-	Prompt      string          `json:"prompt,omitempty"`
-	Config      json.RawMessage `json:"config,omitempty"`
-	Parameters  json.RawMessage `json:"parameters,omitempty"`
-}
+// CreateSkill / DeleteSkill were removed 2026-05-17. Skill rows are
+// authored by the code-first source-sync path; edit
+// tavora/agents/<id>/skills/<name>.js (plus the matching .md prompt)
+// and re-run `tavora dev`.
 
 func (c *Client) ListSkills(ctx context.Context) ([]Skill, error) {
 	var resp struct{ Skills []Skill `json:"skills"` }
@@ -39,24 +35,12 @@ func (c *Client) ListSkills(ctx context.Context) ([]Skill, error) {
 	return resp.Skills, nil
 }
 
-func (c *Client) CreateSkill(ctx context.Context, input CreateSkillInput) (*Skill, error) {
-	var skill Skill
-	if err := c.post(ctx, "/api/sdk/skills", input, &skill); err != nil {
-		return nil, err
-	}
-	return &skill, nil
-}
-
 func (c *Client) GetSkill(ctx context.Context, id string) (*Skill, error) {
 	var skill Skill
 	if err := c.get(ctx, fmt.Sprintf("/api/sdk/skills/%s", id), &skill); err != nil {
 		return nil, err
 	}
 	return &skill, nil
-}
-
-func (c *Client) DeleteSkill(ctx context.Context, id string) error {
-	return c.delete(ctx, fmt.Sprintf("/api/sdk/skills/%s", id))
 }
 
 // GetSkillAuthoringGuide returns the canonical "how to write a Tavora

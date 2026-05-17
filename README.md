@@ -46,15 +46,24 @@ or trace any request.
 |---|---|
 | **App** | `GetApp` |
 | **Agents — sessions** | `CreateAgentSession`, `ListAgentSessions`, `GetAgentSession`, `DeleteAgentSession`, `RunAgent`, `GetAgentSystemPrompt` |
-| **Agents — configs + history** | `CreateAgentConfig`, `ListAgentConfigs`, `Get/Update/DeleteAgentConfig`, `UpdateAgentDraft`, `DiscardAgentDraft`, `PublishAgent`, `RevertAgent`, `UpdateAgentSettings`, `RunAgentEval`, `ListAgentEvalRuns` |
-| **Agent versions** | `CreateAgentVersion`, `ListAgentVersions`, `GetAgentVersion`, `SetActiveAgentVersion` |
-| **Skills** | `CreateSkill`, `ListSkills`, `GetSkill`, `DeleteSkill` |
-| **MCP servers** | `CreateMCPServer`, `ListMCPServers`, `GetMCPServer`, `UpdateMCPServer`, `DeleteMCPServer`, `TestMCPServer` |
+| **Agents — configs + history** | `ListAgentConfigs`, `GetAgentConfig`, `DeleteAgentConfig`, `UpdateAgentSettings`, `RunAgentEval`, `ListAgentEvalRuns` |
+| **Agent versions** | `ListAgentVersions`, `GetAgentVersion` |
+| **Skills** | `ListSkills`, `GetSkill`, `GetSkillAuthoringGuide` |
 | **Indexes** (RAG containers) | `CreateIndex`, `ListIndexes`, `GetIndex`, `UpdateIndex`, `DeleteIndex` |
 | **Documents** (RAG-indexed) | `UploadDocument`, `GetDocument`, `GetDocumentByName`, `ListDocuments`, `ListDocumentVersions`, `DeleteDocument`, `DeleteDocumentHard`, `Search`, `SearchDocuments` |
 | **Chat** | `ChatCompletion`, `CreateConversation`, `SendMessage`, `Get/List/DeleteConversation` |
-| **Evals** | `CreateSuite`, `NewSuiteVersion`, `CreateEvalCase`, `RunEval`, `ListEvalRuns`, … |
+| **Evals** | `ListEvalCases`, `ListEvalRuns`, `GetEvalRun`, `ListSuites`, `GetSuite`, `ListSuiteVersions` |
+| **Code-first source** | `SourceSync`, `SourceValidate`, `SourceDeploy`, `SourceRename`, `SourceDelete` |
 | **Studio** | `GetStudioTrace`, `ReplayFromStep`, `AnalyzeFix` |
+
+Authoring methods (Create/Update/Delete on skills, evals, suites,
+agents) were intentionally removed from the SDK on 2026-05-17. The
+agent definition — persona, skills, evals, indexes binding — lives
+in the local `tavora/` folder and arrives through the
+`Source*` methods (driven by the `tavora` CLI). SDK consumers do
+runtime work: create sessions, upload documents, manage secrets,
+read state. Anything that mutates "what the agent is" goes through
+`tavora dev` / `tavora deploy`.
 
 Full reference at [docs.tavora.ai/sdk](https://docs.tavora.ai/sdk/).
 

@@ -10,7 +10,7 @@ import (
 // EvalCase represents an eval test case.
 type EvalCase struct {
 	ID            string          `json:"id"`
-	AppID       string          `json:"app_id"`
+	AppID         string          `json:"app_id"`
 	Name          string          `json:"name"`
 	Description   string          `json:"description"`
 	SetName       string          `json:"set_name"`
@@ -22,20 +22,6 @@ type EvalCase struct {
 	Tools         json.RawMessage `json:"tools"`
 	PassThreshold int32           `json:"pass_threshold"`
 	CreatedAt     time.Time       `json:"created_at"`
-}
-
-// CreateEvalCaseInput holds parameters for creating an eval case.
-type CreateEvalCaseInput struct {
-	Name          string          `json:"name"`
-	Description   string          `json:"description,omitempty"`
-	SetName       string          `json:"set_name,omitempty"`
-	Type          string          `json:"type,omitempty"`
-	Config        json.RawMessage `json:"config,omitempty"`
-	Prompt        string          `json:"prompt"`
-	Criteria      string          `json:"criteria"`
-	SystemPrompt  string          `json:"system_prompt,omitempty"`
-	Tools         []string        `json:"tools,omitempty"`
-	PassThreshold *int32          `json:"pass_threshold,omitempty"`
 }
 
 // EvalRun represents an eval suite execution.
@@ -70,42 +56,27 @@ type EvalRunDetail struct {
 	Results []EvalResult `json:"results"`
 }
 
-// RunEvalInput holds parameters for triggering an eval run.
-type RunEvalInput struct {
-	SetFilter  string `json:"set_filter,omitempty"`
-	JudgeModel string `json:"judge_model,omitempty"`
-}
-
-func (c *Client) CreateEvalCase(ctx context.Context, input CreateEvalCaseInput) (*EvalCase, error) {
-	var ec EvalCase
-	if err := c.post(ctx, "/api/sdk/evals", input, &ec); err != nil {
-		return nil, err
-	}
-	return &ec, nil
-}
+// CreateEvalCase / DeleteEvalCase / RunEval (the cross-suite trigger)
+// were removed 2026-05-17. Eval cases are authored in
+// tavora/agents/<id>/evals/*.json and arrive via `tavora dev`. To
+// run evals against an agent's pinned suite, use the per-agent
+// trigger on `/api/sdk/agent-configs/:id/eval-runs` (call
+// `RunAgentConfigEval` on the agent-configs client).
 
 func (c *Client) ListEvalCases(ctx context.Context) ([]EvalCase, error) {
-	var resp struct{ Cases []EvalCase `json:"cases"` }
+	var resp struct {
+		Cases []EvalCase `json:"cases"`
+	}
 	if err := c.get(ctx, "/api/sdk/evals", &resp); err != nil {
 		return nil, err
 	}
 	return resp.Cases, nil
 }
 
-func (c *Client) DeleteEvalCase(ctx context.Context, id string) error {
-	return c.delete(ctx, fmt.Sprintf("/api/sdk/evals/%s", id))
-}
-
-func (c *Client) RunEval(ctx context.Context, input RunEvalInput) (*EvalRun, error) {
-	var run EvalRun
-	if err := c.post(ctx, "/api/sdk/evals/run", input, &run); err != nil {
-		return nil, err
-	}
-	return &run, nil
-}
-
 func (c *Client) ListEvalRuns(ctx context.Context) ([]EvalRun, error) {
-	var resp struct{ Runs []EvalRun `json:"runs"` }
+	var resp struct {
+		Runs []EvalRun `json:"runs"`
+	}
 	if err := c.get(ctx, "/api/sdk/eval-runs", &resp); err != nil {
 		return nil, err
 	}

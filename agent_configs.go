@@ -4,15 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 )
 
 // AgentConfig is a persistent agent configuration owned by an app.
-// Post-agent-simplification the live config (persona, skills, stores,
-// provider, model) lives on the agent row directly — what `AgentVersion`
-// used to be the only source of. AgentVersion rows are now append-only
-// history snapshots written on each publish.
+// The live config (persona, skills, stores, provider, model) lives
+// on the agent row directly; AgentVersion rows are append-only
+// history snapshots written by the code-first publish path
+// (`/api/sdk/source-deploy`).
 //
 // Named AgentConfig in the SDK to distinguish from AgentSession, which
 // is an ephemeral run. The backend uses the URL segment "agent-configs"
@@ -24,8 +23,7 @@ type AgentConfig struct {
 	Description string `json:"description"`
 	CreatedBy   string `json:"created_by"`
 
-	// Live config — the runtime reads these for new sessions. Mirrored
-	// onto agent_versions on each publish.
+	// Live config — the runtime reads these for new sessions.
 	PersonaMD           string          `json:"persona_md"`
 	SkillsJSON          json.RawMessage `json:"skills_json"`
 	StoresJSON          json.RawMessage `json:"stores_json"`
@@ -33,13 +31,10 @@ type AgentConfig struct {
 	Model               string          `json:"model"`
 	EnabledCapabilities []string        `json:"enabled_capabilities"`
 
-	// Per-agent operator settings (PR5).
-	EvalSuiteID      *string `json:"eval_suite_id"`
-	RunEvalOnPublish bool    `json:"run_eval_on_publish"`
-
-	// Draft slot — non-nil when the operator has staged unpublished
-	// edits. The runtime is unaffected by the draft.
-	DraftConfig *DraftConfig `json:"draft_config"`
+	// Per-agent operator setting. The previous RunEvalOnPublish toggle
+	// is gone — the browser no longer publishes, and run-on-deploy
+	// lives on the CLI as `tavora deploy --run-evals`.
+	EvalSuiteID *string `json:"eval_suite_id"`
 
 	ActiveVersionID *string    `json:"active_version_id"`
 	PublishedAt     *time.Time `json:"published_at"`
@@ -79,27 +74,11 @@ type AgentVersion struct {
 	CreatedAt        time.Time       `json:"created_at"`
 }
 
-// DraftConfig is the staged next-state of an agent. The frontend always
-// sends the complete intended state — partial-merge isn't supported, so
-// callers should construct this fully (typically from an existing live
-// config).
-type DraftConfig struct {
-	PersonaMD           string         `json:"persona_md"`
-	Skills              []SkillBinding `json:"skills"`
-	Stores              []string       `json:"stores"`
-	Provider            string         `json:"provider"`
-	Model               string         `json:"model"`
-	EnabledCapabilities []string       `json:"enabled_capabilities,omitempty"`
-	EvalSuiteID         string         `json:"eval_suite_id,omitempty"`
-	EvalSuiteVersion    string         `json:"eval_suite_version,omitempty"`
-}
-
-// PublishResult is what Publish and Revert return — the updated agent
-// row plus the new history snapshot that was just appended.
-type PublishResult struct {
-	Agent   AgentConfig  `json:"agent"`
-	Version AgentVersion `json:"version"`
-}
+// DraftConfig was removed 2026-05-17 along with the UpdateAgentDraft /
+// DiscardAgentDraft / PublishAgent / RevertAgent SDK methods. Drafts
+// are an SDK-internal concept owned by the code-first source-sync
+// path; the agent's deployed config is the only shape SDK callers
+// inspect.
 
 // EvalRunResult wraps the row created by RunAgentEval. Wrapped in a
 // struct so future fields (e.g. estimated_duration_s) can land without
@@ -112,28 +91,15 @@ type EvalRunResult struct {
 //
 // CreateAgentConfigInput was removed on 2026-05-16 with the pivot
 // to a Convex-style code-first authoring model: agents land in
-// the database only via SourceSync. CreateAgentConfig was the
-// programmatic entry point on the imperative surface; deleting it
-// means CLI/SDK consumers can't accidentally bypass the
-// `tavora/` folder shape.
+// the database only via SourceSync.
 
 // UpdateAgentSettingsInput patches per-agent operator settings.
-// EvalSuiteID="" clears the pin; nil leaves it alone. Same for
-// RunEvalOnPublish (nil = leave alone).
+// EvalSuiteID="" clears the pin; nil leaves it alone. The previous
+// RunEvalOnPublish toggle is gone — see AgentConfig for the
+// rationale.
 type UpdateAgentSettingsInput struct {
-	EvalSuiteID      *string `json:"eval_suite_id,omitempty"`
-	RunEvalOnPublish *bool   `json:"run_eval_on_publish,omitempty"`
+	EvalSuiteID *string `json:"eval_suite_id,omitempty"`
 }
-
-// EvalTarget selects which persona an advisory eval uses for its
-// sessions. "live" reads the published persona; "draft" reads the
-// staged draft and 409s when nothing is staged.
-type EvalTarget string
-
-const (
-	EvalTargetLive  EvalTarget = "live"
-	EvalTargetDraft EvalTarget = "draft"
-)
 
 // --- AgentConfig methods ---
 //
@@ -185,54 +151,14 @@ func (c *Client) GetAgentVersion(ctx context.Context, agentID, versionID string)
 	return &out, nil
 }
 
-// --- Draft + publish (PR3 of agent simplification) ---
+// --- Draft + publish ---
+//
+// UpdateAgentDraft / DiscardAgentDraft / PublishAgent / RevertAgent
+// were removed 2026-05-17. The draft + publish endpoints they called
+// were retired in the UI rethink; authoring lives in the local
+// `tavora/` folder and arrives via SourceSync / SourceDeploy.
 
-// UpdateAgentDraft stages a complete proposed next-state in the
-// agent's draft_config. The runtime is unaffected; the live config
-// keeps serving sessions until Publish.
-func (c *Client) UpdateAgentDraft(ctx context.Context, agentID string, draft DraftConfig) (*AgentConfig, error) {
-	var out AgentConfig
-	if err := c.patch(ctx, fmt.Sprintf("/api/sdk/agent-configs/%s/draft", agentID), draft, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// DiscardAgentDraft clears the staged draft. Idempotent — discarding
-// when no draft exists is a no-op (still writes the audit row).
-func (c *Client) DiscardAgentDraft(ctx context.Context, agentID string) (*AgentConfig, error) {
-	var out AgentConfig
-	if err := c.deleteWithResult(ctx, fmt.Sprintf("/api/sdk/agent-configs/%s/draft", agentID), &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// PublishAgent promotes the staged draft to live in one transaction:
-// appends an immutable agent_versions snapshot, mirrors the new live
-// columns, clears draft_config, audits. Returns the updated agent +
-// the freshly-appended history row. 409 when no draft exists.
-func (c *Client) PublishAgent(ctx context.Context, agentID string) (*PublishResult, error) {
-	var out PublishResult
-	if err := c.post(ctx, fmt.Sprintf("/api/sdk/agent-configs/%s/publish", agentID), nil, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// RevertAgent publishes a named historical version as the new live
-// config. Same audit/version-append semantics as Publish — a revert
-// is a publish whose source is an existing history row.
-func (c *Client) RevertAgent(ctx context.Context, agentID, versionID string) (*PublishResult, error) {
-	body := map[string]string{"version_id": versionID}
-	var out PublishResult
-	if err := c.post(ctx, fmt.Sprintf("/api/sdk/agent-configs/%s/revert", agentID), body, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// --- Settings + advisory eval (PR5) ---
+// --- Settings + advisory eval ---
 
 // UpdateAgentSettings patches per-agent operator settings. Pass
 // EvalSuiteID=&"" to clear the pin; nil leaves a field unchanged.
@@ -245,14 +171,12 @@ func (c *Client) UpdateAgentSettings(ctx context.Context, agentID string, input 
 }
 
 // RunAgentEval triggers an advisory async eval against the agent's
-// pinned suite. target=EvalTargetDraft uses the staged persona instead
-// of the published one so callers can compare scores before publishing.
-// Pass an empty target for the default (live).
-func (c *Client) RunAgentEval(ctx context.Context, agentID string, target EvalTarget) (*EvalRunResult, error) {
+// pinned suite using the deployed (live) persona. The previous
+// target=draft variant was removed with the UI rethink; CLI users
+// that want to evaluate the synced dev draft run
+// `tavora evals run --draft`.
+func (c *Client) RunAgentEval(ctx context.Context, agentID string) (*EvalRunResult, error) {
 	path := fmt.Sprintf("/api/sdk/agent-configs/%s/eval-runs", agentID)
-	if target != "" {
-		path += "?target=" + url.QueryEscape(string(target))
-	}
 	var out EvalRunResult
 	if err := c.post(ctx, path, nil, &out); err != nil {
 		return nil, err

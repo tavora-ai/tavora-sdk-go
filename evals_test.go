@@ -2,39 +2,15 @@ package tavora
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"testing"
 )
 
-func TestCreateEvalCase(t *testing.T) {
-	ts := newTestServer(t)
-	ts.on(http.MethodPost, "/api/sdk/evals", 201, EvalCase{
-		ID:       "ec_1",
-		Name:     "search-test",
-		Prompt:   "Find pricing docs",
-		Criteria: "Must use search tool",
-	})
-
-	threshold := int32(7)
-	ec, err := ts.client().CreateEvalCase(context.Background(), CreateEvalCaseInput{
-		Name:          "search-test",
-		Prompt:        "Find pricing docs",
-		Criteria:      "Must use search tool",
-		SetName:       "smoke",
-		Tools:         []string{"search"},
-		PassThreshold: &threshold,
-	})
-	assertNoError(t, err)
-	assertEqual(t, "id", ec.ID, "ec_1")
-	assertEqual(t, "name", ec.Name, "search-test")
-
-	req := ts.lastRequest(t)
-	var body CreateEvalCaseInput
-	json.Unmarshal([]byte(req.Body), &body)
-	assertEqual(t, "set_name", body.SetName, "smoke")
-	assertEqual(t, "tools count", len(body.Tools), 1)
-}
+// CreateEvalCase / DeleteEvalCase / RunEval tests were removed
+// 2026-05-17 along with the methods themselves. Eval cases are
+// authored in tavora/agents/<id>/evals/*.json and arrive through
+// source-sync; coverage for that upsert path lives in
+// tavora-go's TestSourceSync_UpsertsEvalCases.
 
 func TestListEvalCases(t *testing.T) {
 	ts := newTestServer(t)
@@ -47,36 +23,6 @@ func TestListEvalCases(t *testing.T) {
 	cases, err := ts.client().ListEvalCases(context.Background())
 	assertNoError(t, err)
 	assertEqual(t, "count", len(cases), 1)
-}
-
-func TestDeleteEvalCase(t *testing.T) {
-	ts := newTestServer(t)
-	ts.on(http.MethodDelete, "/api/sdk/evals/ec_1", 204, nil)
-
-	err := ts.client().DeleteEvalCase(context.Background(), "ec_1")
-	assertNoError(t, err)
-}
-
-func TestRunEval(t *testing.T) {
-	ts := newTestServer(t)
-	ts.on(http.MethodPost, "/api/sdk/evals/run", 200, EvalRun{
-		ID:         "er_1",
-		Status:     "running",
-		TotalCases: 5,
-	})
-
-	run, err := ts.client().RunEval(context.Background(), RunEvalInput{
-		SetFilter: "smoke",
-	})
-	assertNoError(t, err)
-	assertEqual(t, "id", run.ID, "er_1")
-	assertEqual(t, "status", run.Status, "running")
-	assertEqual(t, "total_cases", run.TotalCases, int32(5))
-
-	req := ts.lastRequest(t)
-	var body RunEvalInput
-	json.Unmarshal([]byte(req.Body), &body)
-	assertEqual(t, "set_filter", body.SetFilter, "smoke")
 }
 
 func TestListEvalRuns(t *testing.T) {

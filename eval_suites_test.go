@@ -2,41 +2,36 @@ package tavora
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"testing"
 )
 
-func TestCreateSuite(t *testing.T) {
+// CreateSuite / NewSuiteVersion tests were removed 2026-05-17 when
+// the suite write surface collapsed into source-sync. Coverage for
+// the upsert + version-cut path lives in tavora-go's
+// TestSourceSync_UpsertsEvalCases.
+
+func TestListSuites(t *testing.T) {
 	ts := newTestServer(t)
-	ts.on(http.MethodPost, "/api/sdk/eval-suites", 201, EvalSuite{
-		ID:        "s_1",
-		AppID:     "ws_1",
-		Name:      "Support triage",
-		Threshold: 0.8,
+	ts.on(http.MethodGet, "/api/sdk/eval-suites", 200, []EvalSuite{
+		{ID: "s_1", Name: "Support triage"},
 	})
 
-	suite, err := ts.client().CreateSuite(context.Background(), CreateSuiteInput{
-		Name: "Support triage", Threshold: 0.8,
-	})
+	suites, err := ts.client().ListSuites(context.Background())
 	assertNoError(t, err)
-	assertEqual(t, "id", suite.ID, "s_1")
-
-	req := ts.lastRequest(t)
-	var body CreateSuiteInput
-	if err := json.Unmarshal([]byte(req.Body), &body); err != nil {
-		t.Fatalf("body unmarshal: %v", err)
-	}
-	assertEqual(t, "name", body.Name, "Support triage")
+	assertEqual(t, "count", len(suites), 1)
+	assertEqual(t, "name", suites[0].Name, "Support triage")
 }
 
-func TestNewSuiteVersion_InheritsWhenCaseIDsNil(t *testing.T) {
+func TestListSuiteVersions(t *testing.T) {
 	ts := newTestServer(t)
-	ts.on(http.MethodPost, "/api/sdk/eval-suites/s_1/versions", 201, EvalSuiteVersion{
-		ID: "sv_1", SuiteID: "s_1", Semver: "1.0.1",
+	ts.on(http.MethodGet, "/api/sdk/eval-suites/s_1/versions", 200, []EvalSuiteVersion{
+		{ID: "sv_1", SuiteID: "s_1", Semver: "1.0.0"},
+		{ID: "sv_2", SuiteID: "s_1", Semver: "1.0.1"},
 	})
 
-	v, err := ts.client().NewSuiteVersion(context.Background(), "s_1", NewSuiteVersionInput{})
+	versions, err := ts.client().ListSuiteVersions(context.Background(), "s_1")
 	assertNoError(t, err)
-	assertEqual(t, "semver", v.Semver, "1.0.1")
+	assertEqual(t, "count", len(versions), 2)
+	assertEqual(t, "first semver", versions[0].Semver, "1.0.0")
 }

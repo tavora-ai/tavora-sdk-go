@@ -218,14 +218,12 @@ The `CreateAgentSession` input on both SDKs accepts an optional
 `agent_version_id` to pin the session to an immutable agent version
 (persona + model + skills_json filtering all server-resolved).
 
-### Agent configs (versioned agents, Phase 11)
+### Agent configs
 
 Live config (persona, skills, stores, provider, model) lives on the
-agent row directly since the PR3 agent-simplification ship. The
-draft+publish flow replaces the old propose-and-approve promotion
-state machine — see `docs/agent-simplification-plan.md` in tavora-go.
-`agent_versions` rows are now append-only history snapshots, written
-on each publish.
+agent row directly. `agent_versions` rows are append-only history
+snapshots written by the code-first publish path
+(`/api/sdk/source-deploy`).
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
@@ -234,26 +232,16 @@ on each publish.
 | DELETE | `/api/sdk/agent-configs/:id` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/versions` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/versions/:vid` | 🧪 | ✅ |
-| PATCH | `/api/sdk/agent-configs/:id/draft` | 🧪 | ✅ |
-| DELETE | `/api/sdk/agent-configs/:id/draft` | 🧪 | ✅ |
-| POST | `/api/sdk/agent-configs/:id/publish` | 🧪 | ✅ |
-| POST | `/api/sdk/agent-configs/:id/revert` | 🧪 | ✅ |
 | PATCH | `/api/sdk/agent-configs/:id/settings` | 🧪 | ✅ |
 | POST | `/api/sdk/agent-configs/:id/eval-runs` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/eval-runs` | 🧪 | ✅ |
 | GET | `/api/sdk/agent-configs/:id/eval-suite` | ❌ | ❌ |
-| POST | `/api/sdk/agent-configs/:id/eval-suite/cases` | ❌ | ❌ |
-| PATCH | `/api/sdk/agent-configs/:id/eval-suite/cases/:cid` | ❌ | ❌ |
-| DELETE | `/api/sdk/agent-configs/:id/eval-suite/cases/:cid` | ❌ | ❌ |
-| POST | `/api/sdk/agent-configs/:id/eval-suite/cases/extract-from-session` | ❌ | ❌ |
 
-Code-first source-* endpoints (PUT/POST against `/api/sdk/source-*`)
-are the write path for agents; per-resource POST/PATCH on
-`/api/sdk/agent-configs` was removed on 2026-05-16 when authoring
-moved to the local `tavora/` folder. The remaining `/agent-configs`
-endpoints are read + draft/publish/revert/settings (operator
-control plane), plus DELETE for the rare hard-delete case (`tavora
-delete` calls `/api/sdk/source-delete` instead in normal use).
+UI rethink (2026-05-16) removed the in-browser draft / publish /
+revert and inline eval-case CRUD on `agent-configs`. Authoring lives
+in the local `tavora/` folder; writes flow through the source-*
+endpoints below. DELETE is kept for the rare hard-delete case
+(`tavora delete` calls `/api/sdk/source-delete` in normal use).
 
 ### Code-first source-*
 
@@ -272,28 +260,28 @@ contents.
 
 ### MCP servers
 
-| Method | Path | Go SDK | TS SDK |
-|---|---|---|---|
-| GET | `/api/sdk/mcp-servers` | 🧪 | ✅ |
-| POST | `/api/sdk/mcp-servers` | 🧪 | ✅ |
-| GET | `/api/sdk/mcp-servers/:id` | 🧪 | ✅ |
-| PATCH | `/api/sdk/mcp-servers/:id` | 🧪 | ✅ |
-| DELETE | `/api/sdk/mcp-servers/:id` | 🧪 | ✅ |
-| POST | `/api/sdk/mcp-servers/:id/test` | 🧪 | ✅ |
+Removed by the UI rethink (migration 00089, 2026-05-16). The
+mcp_servers table is gone; MCP support is being reshaped to
+inline references in `agent.jsonc` (URL + secretRef) — see
+`docs/ui-rethink-plan.md` §3 in tavora-go.
 
 ### Skills
+
+Read-only via SDK. Skill rows are authored exclusively by the
+code-first source-sync path (`tavora dev`) — see
+`internal/platform/sdk/source.go` in tavora-go. The 2026-05-17
+dual-writer cleanup removed POST / PATCH / DELETE on /skills so the
+skills table has a single writer.
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
 | GET | `/api/sdk/skills` | 🧪 | ✅ |
-| POST | `/api/sdk/skills` | 🧪 | ✅ |
 | GET | `/api/sdk/skills/:id` | 🧪 | ✅ |
-| DELETE | `/api/sdk/skills/:id` | 🧪 | ✅ |
 | GET | `/api/sdk/skills/authoring-guide` | 🧪 | ✅ |
 
 `POST /api/sdk/skills/validate` exists server-side but is not exposed
-in either SDK — it's used by the admin UI's skill editor only. Add an
-SDK method if a CLI consumer needs offline validation.
+in either SDK — it's a lint hook for tooling that writes skill files
+programmatically. `tavora dev` re-validates locally on every save.
 
 ### Scheduled runs
 
@@ -307,23 +295,21 @@ SDK method if a CLI consumer needs offline validation.
 
 ### Evals
 
+Read-only via SDK. Eval cases, suites, and suite versions are
+authored exclusively by code-first source-sync from
+`tavora/agents/<id>/evals/*.json` — the 2026-05-17 dual-writer
+cleanup removed every mutating endpoint here. To trigger a run, use
+`POST /api/sdk/agent-configs/:id/eval-runs` (it scopes to the
+agent's pinned suite and uses the deployed persona).
+
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
 | GET | `/api/sdk/evals` | 🧪 | ✅ |
-| POST | `/api/sdk/evals` | 🧪 | ✅ |
 | GET | `/api/sdk/evals/:id` | 🧪 | ✅ |
-| PATCH | `/api/sdk/evals/:id` | 🧪 | ✅ |
-| DELETE | `/api/sdk/evals/:id` | 🧪 | ✅ |
-| POST | `/api/sdk/evals/run` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-runs` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-runs/:id` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-suites` | 🧪 | ✅ |
-| POST | `/api/sdk/eval-suites` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
-| PATCH | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
-| PATCH | `/api/sdk/eval-suites/:id/judge` | ❌ | ❌ |
-| DELETE | `/api/sdk/eval-suites/:id` | 🧪 | ✅ |
-| POST | `/api/sdk/eval-suites/:id/versions` | 🧪 | ✅ |
 | GET | `/api/sdk/eval-suites/:id/versions` | 🧪 | ✅ |
 
 ### Promotions — ❌ removed 2026-05-12

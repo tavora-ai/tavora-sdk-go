@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-// EvalSuite is a named grouping of eval cases for advisory eval runs.
-// Pre-agent-simplification (PR4) suites also gated agent promotion;
-// that's gone — suites now just describe "the set of cases to run."
+// EvalSuite is a named grouping of eval cases. Pre-agent-simplification
+// suites gated agent promotion; today they describe "the set of cases
+// to run." One suite per agent at the schema level.
 type EvalSuite struct {
 	ID              string    `json:"id"`
 	AppID           string    `json:"app_id"`
@@ -29,30 +29,12 @@ type EvalSuiteVersion struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// --- Input types ---
-
-type CreateSuiteInput struct {
-	Name        string  `json:"name"`
-	Description string  `json:"description,omitempty"`
-	Threshold   float32 `json:"threshold,omitempty"` // 0–1; 0.8 default if zero
-	AgentID     string  `json:"agent_id,omitempty"`  // optional: attach at create time
-}
-
-type NewSuiteVersionInput struct {
-	// CaseIDs is the new membership snapshot. Nil (not empty) means "inherit
-	// from the suite's active version" — the common bump-version path.
-	CaseIDs []string `json:"case_ids,omitempty"`
-}
-
-// --- Suite methods ---
-
-func (c *Client) CreateSuite(ctx context.Context, input CreateSuiteInput) (*EvalSuite, error) {
-	var out EvalSuite
-	if err := c.post(ctx, "/api/sdk/eval-suites", input, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
+// CreateSuite / DeleteSuite / NewSuiteVersion were removed
+// 2026-05-17 alongside the broader eval dual-writer cleanup. Suites
+// and their versions are minted exclusively by `tavora dev` from
+// the agent's tavora/agents/<id>/evals/*.json files; the SDK
+// surface stays read-only so the eval_suites / eval_suite_versions
+// tables have a single writer.
 
 func (c *Client) ListSuites(ctx context.Context) ([]EvalSuite, error) {
 	var out []EvalSuite
@@ -70,17 +52,12 @@ func (c *Client) GetSuite(ctx context.Context, suiteID string) (*EvalSuite, erro
 	return &out, nil
 }
 
-func (c *Client) DeleteSuite(ctx context.Context, suiteID string) error {
-	return c.delete(ctx, fmt.Sprintf("/api/sdk/eval-suites/%s", suiteID))
-}
-
-// NewSuiteVersion freezes the suite's case membership into an immutable
-// version. Omit CaseIDs to inherit the suite's current active-version
-// membership.
-func (c *Client) NewSuiteVersion(ctx context.Context, suiteID string, input NewSuiteVersionInput) (*EvalSuiteVersion, error) {
-	var out EvalSuiteVersion
-	if err := c.post(ctx, fmt.Sprintf("/api/sdk/eval-suites/%s/versions", suiteID), input, &out); err != nil {
+// ListSuiteVersions returns the immutable version snapshots minted by
+// source-sync each time the eval-case set changes.
+func (c *Client) ListSuiteVersions(ctx context.Context, suiteID string) ([]EvalSuiteVersion, error) {
+	var out []EvalSuiteVersion
+	if err := c.get(ctx, fmt.Sprintf("/api/sdk/eval-suites/%s/versions", suiteID), &out); err != nil {
 		return nil, err
 	}
-	return &out, nil
+	return out, nil
 }
