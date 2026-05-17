@@ -23,13 +23,14 @@ var templatesFS embed.FS
 type Server struct {
 	Store        *store.Store
 	Tavora       *tavora.Client
+	AgentID      string // Server-side ID of the deployed tasklist agent
 	SharedSecret string // Bearer token required on /mcp
 	indexTmpl    *template.Template
 	mcpServer    *mcp.Server
 }
 
 // New builds a Server and parses templates.
-func New(s *store.Store, t *tavora.Client, secret string) (*Server, error) {
+func New(s *store.Store, t *tavora.Client, agentID, secret string) (*Server, error) {
 	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
 	if err != nil {
 		return nil, err
@@ -37,6 +38,7 @@ func New(s *store.Store, t *tavora.Client, secret string) (*Server, error) {
 	return &Server{
 		Store:        s,
 		Tavora:       t,
+		AgentID:      agentID,
 		SharedSecret: secret,
 		indexTmpl:    tmpl,
 		mcpServer:    buildMCPServer(s),
@@ -63,8 +65,9 @@ func (s *Server) Routes() http.Handler {
 		r.Post("/chat", s.handleChat)
 	})
 
-	// MCP endpoint — auth-gated by shared secret matching the auth_config
-	// registered with Tavora via CreateMCPServer.
+	// MCP endpoint — auth-gated by the shared secret. The secret must
+	// match the value stored under TASKLIST_BEARER in the Tavora app's
+	// secret vault (referenced from agent.jsonc → mcp[].auth.tokenRef).
 	mcpHandler := mcp.NewStreamableHTTPHandler(
 		func(_ *http.Request) *mcp.Server { return s.mcpServer },
 		nil,

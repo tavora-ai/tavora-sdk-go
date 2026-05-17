@@ -1,27 +1,29 @@
 // Tasklist — an example Tavora SDK consumer that exposes its task-list
-// domain to an agent via webhook skills.
+// domain to an agent via an embedded MCP server.
+//
+// The agent itself is authored as code under tavora/agents/tasklist/
+// in your project; `tavora deploy` ships it. This binary serves the
+// /mcp endpoint and a chat UI that drives the deployed agent over the
+// SDK.
 //
 // Usage:
 //
 //	export TAVORA_URL=http://localhost:8080
 //	export TAVORA_API_KEY=tvr_...
-//	export APP_PORT=8090                         # optional, default 8090
-//	export APP_PUBLIC_URL=http://localhost:8090  # optional, derived from APP_PORT
+//	export TASKLIST_AGENT_ID=agent_...                 # from `tavora deploy`
+//	export TASKLIST_BEARER=<random>                    # matches the TASKLIST_BEARER secret in the app's vault
+//	export APP_PORT=8090                               # optional, default 8090
+//	export APP_PUBLIC_URL=http://localhost:8090        # optional, derived from APP_PORT
 //	go run .
 package main
 
 import (
-	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/tavora-ai/tavora-sdk-go/examples/tasklist/internal/store"
-	localtavora "github.com/tavora-ai/tavora-sdk-go/examples/tasklist/internal/tavora"
 	"github.com/tavora-ai/tavora-sdk-go/examples/tasklist/internal/web"
 	tavora "github.com/tavora-ai/tavora-sdk-go"
 )
@@ -40,6 +42,16 @@ func run() error {
 		return fmt.Errorf("TAVORA_URL and TAVORA_API_KEY must be set")
 	}
 
+	agentID := os.Getenv("TASKLIST_AGENT_ID")
+	if agentID == "" {
+		return fmt.Errorf("TASKLIST_AGENT_ID must be set to the server-side ID of the deployed tasklist agent (see `tavora deploy` output)")
+	}
+
+	secret := os.Getenv("TASKLIST_BEARER")
+	if secret == "" {
+		return fmt.Errorf("TASKLIST_BEARER must be set to the same value as the TASKLIST_BEARER secret in the Tavora app's vault")
+	}
+
 	port := envOr("APP_PORT", "8090")
 	publicURL := envOr("APP_PUBLIC_URL", "http://localhost:"+port)
 	dbPath := envOr("APP_DB", "tasklist.db")
@@ -50,19 +62,9 @@ func run() error {
 	}
 	defer st.Close()
 
-	secret, err := randomSecret()
-	if err != nil {
-		return err
-	}
-
 	client := tavora.NewClient(tavoraURL, tavoraKey)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := localtavora.EnsureMCPServer(ctx, client, publicURL, secret); err != nil {
-		return fmt.Errorf("register mcp server: %w", err)
-	}
 
-	srv, err := web.New(st, client, secret)
+	srv, err := web.New(st, client, agentID, secret)
 	if err != nil {
 		return fmt.Errorf("new web server: %w", err)
 	}
@@ -71,6 +73,7 @@ func run() error {
 		"listen", ":"+port,
 		"public_url", publicURL,
 		"tavora_url", tavoraURL,
+		"agent_id", agentID,
 		"db", dbPath,
 	)
 	return http.ListenAndServe(":"+port, srv.Routes())
@@ -81,12 +84,4 @@ func envOr(key, fallback string) string {
 		return v
 	}
 	return fallback
-}
-
-func randomSecret() (string, error) {
-	b := make([]byte, 24)
-	if _, err := rand.Read(b); err != nil {
-		return "", fmt.Errorf("random: %w", err)
-	}
-	return hex.EncodeToString(b), nil
 }

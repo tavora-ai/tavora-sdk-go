@@ -11,15 +11,20 @@ your CI runner.
 Install the [`tavora`](https://github.com/tavora-ai/tavora-tools) CLI, then:
 
 ```sh
-# One-time setup: create a couple of sample cases (idempotent).
-tavora evals seed
+# Author eval cases as JSON files under tavora/agents/<id>/evals/
+# (see https://docs.tavora.ai/tutorials/skills/) and ship them with:
+tavora deploy
 
-# Trigger a run, wait for completion, gate the CI build on results.
-tavora evals run --gate --timeout 10m
+# Trigger an advisory run against the agent's pinned suite, gate CI
+# on the result:
+tavora evals run <agent> --gate --timeout 10m
 ```
 
 `--gate` implies `--wait`; the command polls until the run completes,
-prints a per-case PASS/FAIL table, and exits non-zero if any case fails.
+prints a per-case PASS/FAIL table, and exits non-zero if any case
+fails the suite's pass threshold. Eval failures are advisory at the
+platform level (no promotion gate as of the 2026-05-11 slim-down),
+but `--gate` still lets you block CI on them.
 
 ## GitHub Actions
 
@@ -33,7 +38,7 @@ jobs:
       - run: |
           curl -L https://github.com/tavora-ai/tavora-tools/releases/latest/download/tavora-linux-amd64 -o tavora
           chmod +x tavora
-          ./tavora evals run --gate --timeout 10m
+          ./tavora evals run support --gate --timeout 10m
         env:
           TAVORA_URL: ${{ secrets.TAVORA_URL }}
           TAVORA_API_KEY: ${{ secrets.TAVORA_API_KEY }}
@@ -41,10 +46,13 @@ jobs:
 
 ## What this example used to do
 
-A standalone program that called `client.RunEval()`, polled the run,
-printed a results table, and exited non-zero on failure. About 200 lines
-of Go. The CLI now does the same in `tavora evals run --gate` with no
-maintenance overhead for users.
+A standalone program that called `client.RunEval()` (a cross-suite
+ad-hoc run endpoint), polled the run, printed a results table, and
+exited non-zero on failure. About 200 lines of Go.
+
+`client.RunEval()` came off the SDK with the Phase-12 promotion-gate
+teardown; runs are now per-agent against the agent's pinned suite
+(`runAgentEval` on the SDK, `tavora evals run <agent>` on the CLI).
 
 For the source as it was, see commit history before this README replaced
 the program.

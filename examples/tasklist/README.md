@@ -23,35 +23,24 @@ transport) that exposes six tools:
 | `list_tasks` | Enumerate a list's tasks |
 | `complete_task` | Mark a task done |
 
-On startup the example calls `client.CreateMCPServer(...)` once —
-registering the URL, transport, and a Bearer auth config with the Tavora
-app the API key is scoped to. After that, every agent run in the
-app auto-discovers these tools (see `internal/agent/mcp.go` in the
-main repo — `mcpSvc.LoadSandboxPacks` dials each enabled MCP server,
-lists its tools, and exposes them inside the Goja sandbox as
-`require('<server-name>').<tool>(args)`). No per-agent wiring.
+The agent that uses these tools is **authored as code** under a
+`tavora/agents/tasklist/` folder. Its `agent.jsonc → mcp` block
+declares this example's `/mcp` endpoint + the bearer secret name; the
+agent ships to Tavora via `tavora deploy`. At runtime, when the agent
+writes `require('tasklist-example').add_task({...})` inside an
+`execute_js` block, Tavora's MCP client POSTs a JSON-RPC `tools/call`
+to `/mcp` with the Bearer token; the example dispatches to its SQLite
+store and returns the result.
 
-When the agent writes `require('tasklist-example').add_task({...})`
-inside an `execute_js` block, Tavora's MCP client POSTs a JSON-RPC
-`tools/call` to `/mcp` with the Bearer token; the example dispatches to
-its SQLite store and returns the result. The result surfaces in the
-sandbox trace and goes back to the agent's reasoning loop, streaming
-into the browser via SSE. Many MCP calls can happen inside a single
-`execute_js` turn — the agent doesn't spend one iteration per tool
-call.
+Many MCP calls can happen inside a single `execute_js` turn — the
+agent doesn't spend one iteration per tool call.
 
-Registration is idempotent: re-running the example does not create
-duplicate MCP server records. Config drift (URL change after a port
-swap) triggers delete + create.
-
-## Why MCP and not "webhook skills"
-
-Tavora's SDK also exposes `CreateSkill(type: "webhook", ...)`, but in the
-current code path webhook skills are only loaded into a legacy
-`ToolRegistry` used for session-creation validation — they are never
-wired into the ADK agent at run time. MCP servers are. If you try to
-pass a webhook-skill name in `CreateAgentSession.Tools` you get
-`unknown tool: …`. MCP is the correct extension mechanism today.
+> **Note:** earlier versions of this example registered the MCP
+> server through `client.CreateMCPServer(...)` at boot. That endpoint
+> was removed when MCP authoring moved into `agent.jsonc`; the boot
+> path now does no SDK setup beyond constructing the client. See the
+> [tasklist tutorial](https://docs.tavora.ai/tutorials/tasklist/) for
+> the full code-first authoring walkthrough.
 
 ## Setup
 
@@ -59,16 +48,23 @@ pass a webhook-skill name in `CreateAgentSession.Tools` you get
    ```
    task dev
    ```
-2. Sign in at http://localhost:8080, open `/platform`, mint an API key
-   for your app.
-3. Export env vars and run the example:
+2. Sign in at http://localhost:8080, open `/`, mint an API key for
+   your app. Add a `TASKLIST_BEARER` secret to the app's vault (any
+   random value — the example uses it to gate `/mcp`).
+3. Author and deploy the agent (see
+   [tutorials/tasklist](https://docs.tavora.ai/tutorials/tasklist/)
+   for the `agent.jsonc` shape). The deploy output prints the agent's
+   server-side ID — pass it as `TASKLIST_AGENT_ID` below.
+4. Export env vars and run the example:
    ```
    export TAVORA_URL=http://localhost:8080
    export TAVORA_API_KEY=tvr_...
+   export TASKLIST_AGENT_ID=agent_...    # from `tavora deploy`
+   export TASKLIST_BEARER=...            # same value as in the app vault
    cd examples/tasklist
    go run .
    ```
-4. Open http://localhost:8090.
+5. Open http://localhost:8090.
 
 ### Env vars
 
@@ -76,6 +72,8 @@ pass a webhook-skill name in `CreateAgentSession.Tools` you get
 |---|---|---|
 | `TAVORA_URL` | — | Tavora backend base URL |
 | `TAVORA_API_KEY` | — | App-scoped API key (`tvr_...`) |
+| `TASKLIST_AGENT_ID` | — | Server-side ID of the deployed tasklist agent |
+| `TASKLIST_BEARER` | — | Shared secret the example uses to gate `/mcp` — must match the `TASKLIST_BEARER` secret in the Tavora app's vault |
 | `APP_PORT` | `8090` | Port the example listens on |
 | `APP_PUBLIC_URL` | `http://localhost:$APP_PORT` | Base URL Tavora uses to reach the example's `/mcp` endpoint — set to an ngrok/cloudflared URL when pointing at a hosted Tavora |
 | `APP_DB` | `tasklist.db` | SQLite file path; `:memory:` for ephemeral |
@@ -90,7 +88,8 @@ cloudflared tunnel --url http://localhost:8090
 # or: ngrok http 8090
 ```
 
-Then set `APP_PUBLIC_URL=https://<your-tunnel-host>` before `go run .`.
+Then set `APP_PUBLIC_URL=https://<your-tunnel-host>` before `go run .`
+(and use the same value in your `agent.jsonc` `mcp.url`).
 
 ## Try it
 
@@ -112,20 +111,20 @@ examples/tasklist/
 ├── main.go
 ├── internal/
 │   ├── store/       # SQLite schema + CRUD
-│   ├── tavora/      # MCP server registration (bootstrap)
+│   ├── tavora/      # SDK client construction (MCP bootstrap removed)
 │   └── web/         # Router, UI, JSON API, MCP server, chat SSE
 │       └── templates/index.html
 └── README.md
 ```
 
+The `tavora/agents/tasklist/` folder that authors the agent lives
+elsewhere in your project (your repo, not this example's folder) —
+the example only contains the server-side runtime.
+
 ## Caveats
 
-- **App-wide tool visibility.** Because Tavora loads MCP servers at
-  the app level (not per-agent), every agent in this app will
-  see the tasklist tools. Fine for a demo; for production Tavora would
-  need per-version MCP binding (analogous to `AgentVersion.skills_json`).
 - **Single-tenant store.** The example's SQLite DB is not per-Tavora-
   app. One example process = one logical task-list namespace.
 - **No auth on the example's own web UI.** It's a dev toy.
 - **Deliberately out of scope:** multi-user auth, session persistence,
-  versioned agents, evals, policies, production deployment.
+  evals, production deployment.

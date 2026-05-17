@@ -9,16 +9,6 @@ import (
 	tavora "github.com/tavora-ai/tavora-sdk-go"
 )
 
-const chatSystemPrompt = `You are a task-list assistant. The user runs a small macOS-Reminders-style app.
-
-You can manage task lists and tasks by calling the MCP tools registered with this app (create_task_list, list_task_lists, delete_task_list, add_task, list_tasks, complete_task). The tools' schemas tell you their arguments.
-
-Guidelines:
-- When the user asks you to create a list of items (e.g. "all large German cities"), first call create_task_list to get a list_id, then call add_task repeatedly for each item.
-- If the user refers to an existing list by name, call list_task_lists first to find its id.
-- Keep final replies short and concrete ("Created list 'German Cities' with 6 tasks.") — the UI already shows the details.
-- Do not invent IDs. Only use IDs returned by tools.`
-
 func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	if s.Tavora == nil {
 		writeError(w, http.StatusServiceUnavailable, "Tavora client not configured")
@@ -47,12 +37,12 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 	}
 
-	// No Tools field — the agent auto-loads every enabled MCP server in the
-	// app (see internal/agent/mcp.go:30 in tavora-go), which includes
-	// the tasklist MCP server the example registered on startup.
+	// Bind the session to the deployed tasklist agent — its persona,
+	// model, and MCP binding (this server's /mcp endpoint) all come
+	// from what `tavora deploy` shipped.
 	session, err := s.Tavora.CreateAgentSession(r.Context(), tavora.CreateAgentSessionInput{
-		Title:        truncate("Tasklist: "+in.Message, 80),
-		SystemPrompt: chatSystemPrompt,
+		AgentID: s.AgentID,
+		Title:   truncate("Tasklist: "+in.Message, 80),
 	})
 	if err != nil {
 		sendEvent(map[string]string{"type": "error", "content": "create session: " + err.Error()})
