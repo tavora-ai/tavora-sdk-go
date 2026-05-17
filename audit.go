@@ -14,7 +14,7 @@ import (
 // (see tavora-go docs/mvp-slimdown-plan.md §9).
 type TenantAuditEntry struct {
 	ID             string          `json:"id"`
-	AppID    string          `json:"app_id"`
+	ProjectID    string          `json:"project_id"`
 	ActorUserID    *string         `json:"actor_user_id"`
 	ActorAPIKeyID  *string         `json:"actor_api_key_id"`
 	Action         string          `json:"action"`
@@ -45,7 +45,7 @@ type AuditListPage struct {
 	Offset  int                `json:"offset"`
 }
 
-// ListAuditLog returns a page of audit entries for the API-key's app.
+// ListAuditLog returns a page of audit entries for the API-key's project.
 func (c *Client) ListAuditLog(ctx context.Context, f AuditListFilter) (*AuditListPage, error) {
 	q := url.Values{}
 	if f.Action != "" {

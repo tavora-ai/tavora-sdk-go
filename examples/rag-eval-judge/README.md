@@ -5,7 +5,7 @@ This example was promoted to a built-in subcommand of the `tavora` CLI on
 
 ## Use it
 
-Install the [`tavora`](https://github.com/tavora-ai/tavora-tools) CLI,
+Install the [`tavora`](https://github.com/tavora-ai/tavora-cli) CLI,
 clone the [`tavora-testdata`](https://github.com/tavora-ai/tavora-testdata)
 corpus as a sibling, then:
 

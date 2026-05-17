@@ -10,7 +10,7 @@ import (
 // PromptTemplate represents a reusable system prompt.
 type PromptTemplate struct {
 	ID        string          `json:"id"`
-	AppID   string          `json:"app_id"`
+	ProjectID   string          `json:"project_id"`
 	Name      string          `json:"name"`
 	Content   string          `json:"content"`
 	Variables json.RawMessage `json:"variables"`

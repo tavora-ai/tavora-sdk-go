@@ -1,6 +1,6 @@
 # tasklist — agent-driven Reminders-style demo
 
-A small Go web app that uses the **Tavora Go SDK** to let an agent drive a
+A small Go web project that uses the **Tavora Go SDK** to let an agent drive a
 task-list UI. Ask the agent *"Create a task list of all large German cities
 to visit"* and watch it call `create_task_list` + six `add_task`s in real
 time.
@@ -49,7 +49,7 @@ agent doesn't spend one iteration per tool call.
    task dev
    ```
 2. Sign in at http://localhost:8080, open `/`, mint an API key for
-   your app. Add a `TASKLIST_BEARER` secret to the app's vault (any
+   your project. Add a `TASKLIST_BEARER` secret to the project's vault (any
    random value — the example uses it to gate `/mcp`).
 3. Author and deploy the agent (see
    [tutorials/tasklist](https://docs.tavora.ai/tutorials/tasklist/)
@@ -60,7 +60,7 @@ agent doesn't spend one iteration per tool call.
    export TAVORA_URL=http://localhost:8080
    export TAVORA_API_KEY=tvr_...
    export TASKLIST_AGENT_ID=agent_...    # from `tavora deploy`
-   export TASKLIST_BEARER=...            # same value as in the app vault
+   export TASKLIST_BEARER=...            # same value as in the project vault
    cd examples/tasklist
    go run .
    ```
@@ -71,9 +71,9 @@ agent doesn't spend one iteration per tool call.
 | Var | Default | Notes |
 |---|---|---|
 | `TAVORA_URL` | — | Tavora backend base URL |
-| `TAVORA_API_KEY` | — | App-scoped API key (`tvr_...`) |
+| `TAVORA_API_KEY` | — | Project-scoped API key (`tvr_...`) |
 | `TASKLIST_AGENT_ID` | — | Server-side ID of the deployed tasklist agent |
-| `TASKLIST_BEARER` | — | Shared secret the example uses to gate `/mcp` — must match the `TASKLIST_BEARER` secret in the Tavora app's vault |
+| `TASKLIST_BEARER` | — | Shared secret the example uses to gate `/mcp` — must match the `TASKLIST_BEARER` secret in the Tavora project's vault |
 | `APP_PORT` | `8090` | Port the example listens on |
 | `APP_PUBLIC_URL` | `http://localhost:$APP_PORT` | Base URL Tavora uses to reach the example's `/mcp` endpoint — set to an ngrok/cloudflared URL when pointing at a hosted Tavora |
 | `APP_DB` | `tasklist.db` | SQLite file path; `:memory:` for ephemeral |
@@ -124,7 +124,7 @@ the example only contains the server-side runtime.
 ## Caveats
 
 - **Single-tenant store.** The example's SQLite DB is not per-Tavora-
-  app. One example process = one logical task-list namespace.
+  project. One example process = one logical task-list namespace.
 - **No auth on the example's own web UI.** It's a dev toy.
 - **Deliberately out of scope:** multi-user auth, session persistence,
   evals, production deployment.

@@ -73,12 +73,12 @@ func run() error {
 	client := tavora.NewClient(url, key)
 	ctx := context.Background()
 
-	// Show app info
-	ws, err := client.GetApp(ctx)
+	// Show project info
+	ws, err := client.GetProject(ctx)
 	if err != nil {
-		return fmt.Errorf("getting app: %w", err)
+		return fmt.Errorf("getting project: %w", err)
 	}
-	fmt.Printf("App: %s (%s)\n\n", ws.Name, ws.ID)
+	fmt.Printf("Project: %s (%s)\n\n", ws.Name, ws.ID)
 
 	var storeID string
 
@@ -123,7 +123,7 @@ func uploadDir(ctx context.Context, client *tavora.Client, dir string) (string, 
 	}
 
 	// Create store named after the directory, with a timestamp suffix so
-	// re-runs against the same app don't collide on the unique-name constraint.
+	// re-runs against the same project don't collide on the unique-name constraint.
 	colName := filepath.Base(dir) + "-" + time.Now().Format("20060102-1504")
 	fmt.Printf("Creating store: %s\n", colName)
 	col, err := client.CreateIndex(ctx, tavora.CreateIndexInput{

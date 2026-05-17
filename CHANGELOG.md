@@ -79,7 +79,7 @@ this release prunes the SDK client to match.
 ### Examples
 
 - `examples/research-assistant`, `examples/support-bot` removed
-  (consolidated into `tavora-tools/cmd/tavora-tui` and the
+  (consolidated into `tavora-cli/cmd/tavora-tui` and the
   `tasklist` tutorial).
 - `examples/tasklist` rewritten around code-first authoring — the
   agent is declared under `tavora/agents/tasklist/` and shipped

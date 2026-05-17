@@ -9,7 +9,7 @@ import (
 // ScheduledRun represents a scheduled agent execution.
 type ScheduledRun struct {
 	ID             string     `json:"id"`
-	AppID        string     `json:"app_id"`
+	ProjectID        string     `json:"project_id"`
 	AgentSessionID string     `json:"agent_session_id"`
 	Name           string     `json:"name"`
 	CronExpression string     `json:"cron_expression"`
@@ -63,4 +63,21 @@ func (c *Client) CreateScheduledRun(ctx context.Context, input CreateScheduledRu
 // DeleteScheduledRun deletes a scheduled run by ID.
 func (c *Client) DeleteScheduledRun(ctx context.Context, id string) error {
 	return c.delete(ctx, fmt.Sprintf("/api/sdk/scheduled-runs/%s", id))
+}
+
+// DeleteAllScheduledRunsResult is the body of DeleteAllScheduledRuns.
+type DeleteAllScheduledRunsResult struct {
+	Deleted int64 `json:"deleted"`
+}
+
+// DeleteAllScheduledRuns removes every scheduled run in the project
+// the API key is bound to. Idempotent — returns {Deleted: 0} when
+// the project has none. Useful for "clear all" UI actions and for
+// resetting between dev iterations.
+func (c *Client) DeleteAllScheduledRuns(ctx context.Context) (*DeleteAllScheduledRunsResult, error) {
+	var out DeleteAllScheduledRunsResult
+	if err := c.deleteWithResult(ctx, "/api/sdk/scheduled-runs", &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }

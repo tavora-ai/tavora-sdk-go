@@ -11,7 +11,7 @@ import (
 // to run." One suite per agent at the schema level.
 type EvalSuite struct {
 	ID              string    `json:"id"`
-	AppID           string    `json:"app_id"`
+	ProjectID           string    `json:"project_id"`
 	AgentID         *string   `json:"agent_id"`
 	Name            string    `json:"name"`
 	Description     string    `json:"description"`

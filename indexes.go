@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-// Index is an app-scoped container of RAG-indexed documents — what other
+// Index is a project-scoped container of RAG-indexed documents — what other
 // ecosystems call a "vector store." Naming history: stores → indexes
 // (tavora-go migration 00047). The Collections + Files surfaces that
 // shared this naming taxonomy were retired by the 2026-05-11 positioning
 // rewrite — Indexes is the sole retrieval primitive Tavora owns.
 type Index struct {
 	ID          string          `json:"id"`
-	AppID       string          `json:"app_id"`
+	ProjectID       string          `json:"project_id"`
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
 	Metadata    json.RawMessage `json:"metadata"`
@@ -38,7 +38,7 @@ type UpdateIndexInput struct {
 	Metadata    json.RawMessage `json:"metadata,omitempty"`
 }
 
-// ListIndexes returns all indexes in the app.
+// ListIndexes returns all indexes in the project.
 func (c *Client) ListIndexes(ctx context.Context) ([]Index, error) {
 	var resp struct {
 		Indexes []Index `json:"indexes"`

@@ -41,20 +41,20 @@ SDK. `🧪` = method implemented and unit-tested in that SDK.
 `—` = not yet present. "Feature area" maps to the `internal/*/`
 package on the server side.
 
-### App
+### Project
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
-| GET | `/api/sdk/app` | 🧪 | ✅ |
+| GET | `/api/sdk/project` | 🧪 | ✅ |
 | GET | `/api/sdk/metrics` | 🧪 | ✅ |
-| PUT | `/api/sdk/app/vault` | ⏳ | ⏳ |
+| PUT | `/api/sdk/project/vault` | ⏳ | ⏳ |
 
-`/api/sdk/app/seed` was removed on 2026-05-16 with the pivot to a
+`/api/sdk/project/seed` was removed on 2026-05-16 with the pivot to a
 Convex-style code-first authoring model: agents are no longer
 auto-seeded server-side. Operators run `tavora init` + `tavora dev`
-to bring an agent into the app via `/api/sdk/source-sync`.
+to bring an agent into the project via `/api/sdk/source-sync`.
 
-The `/api/sdk/app/vault` endpoint designates one of the app's
+The `/api/sdk/project/vault` endpoint designates one of the project's
 secret_vaults as the source of tool credentials. When set, the runtime
 LLM resolver reads provider keys by convention
 (`openai_api_key`, `anthropic_api_key`, `gemini_api_key`,
@@ -62,7 +62,7 @@ LLM resolver reads provider keys by convention
 Brave search pack reads `brave_api_key` from the same vault. Falls
 back to server-wide env vars for any LLM provider not in the vault.
 Brave web search is unavailable when no vault is designated. Cached
-for 60 s per (app, provider). The vault is read **internally by
+for 60 s per (project, provider). The vault is read **internally by
 tools** — the agent's JS sandbox does not have a `secret(name)`
 primitive (removed in §9d Q9.1 of the MVP slim-down plan).
 
@@ -82,7 +82,7 @@ Documents surface entirely intact.
 
 ### Indexes (RAG containers)
 
-`/api/sdk/indexes/:id` is an app-scoped container of RAG-indexed
+`/api/sdk/indexes/:id` is a project-scoped container of RAG-indexed
 documents — what other ecosystems call "vector stores." Pre-customer
 this surface was named `stores`; renamed for naming-coherence
 (Storage = files; Indexes = RAG; Collections = JSON), see
@@ -110,7 +110,7 @@ this surface was named `stores`; renamed for naming-coherence
 | GET | `/api/sdk/documents/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/documents/:id` | 🧪 | ✅ |
 
-The per-store `/api/sdk/indexes/:id/documents/:docId` routes (GET, DELETE) are alias forms of the app-level routes. SDK consumers should prefer the top-level form; the per-store form remains for admin tooling and future tier-1 consumers that already know the store.
+The per-store `/api/sdk/indexes/:id/documents/:docId` routes (GET, DELETE) are alias forms of the project-level routes. SDK consumers should prefer the top-level form; the per-store form remains for admin tooling and future tier-1 consumers that already know the store.
 
 Documents carry user-supplied provenance via the multipart `metadata`
 field (free-form JSON, recommended keys: `source`, `task`, `type`,
@@ -167,9 +167,9 @@ is gone in migration `00060_drop_collection_primitives.sql`; the
 deleted in the same wave. Agent working memory now lives in
 `memory_stores` (Stage 2 of the composable-primitives plan).
 
-### Secret vaults (envelope-encrypted, app-scoped)
+### Secret vaults (envelope-encrypted, project-scoped)
 
-App-scoped vaults of named secrets the agent can read via the sandbox
+Project-scoped vaults of named secrets the agent can read via the sandbox
 `secret(name)` primitive when its session is pinned to a vault
 (Stage 3 of the composable-primitives plan). Storage is envelope
 encryption: a per-row DEK (AES-256-GCM) wrapped with the platform
@@ -213,6 +213,8 @@ when `TAVORA_SECRET_KEK` is unset.
 | GET | `/api/sdk/agents/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/agents/:id` | 🧪 | ✅ |
 | POST | `/api/sdk/agents/:id/run` (SSE) | 🧪 | ✅ |
+| GET | `/api/sdk/agents/sessions/:id/assets` | 🧪 | ⏳ |
+| GET | `/api/sdk/assets/:id` | 🧪 | ⏳ |
 
 The `CreateAgentSession` input on both SDKs accepts an optional
 `agent_version_id` to pin the session to an immutable agent version
@@ -258,6 +260,20 @@ contents.
 | POST | `/api/sdk/source-rename` | 🧪 | ✅ |
 | POST | `/api/sdk/source-delete` | 🧪 | ✅ |
 
+### Deployments
+
+Convex-style dev/staging/prod environments per project. `tavora init`
+mints a personal dev deployment via POST; the CLI reads/writes
+`tavora/.env.local` with `TAVORA_DEPLOYMENT=<kind>:<slug>` and attaches
+`X-Tavora-Deployment` to every subsequent request so source-sync routes
+to the right deployment row. See `tavora-go/docs/code-first-agents-concept.md`
+§Environments for the schema + lifecycle.
+
+| Method | Path | Go SDK | TS SDK |
+|---|---|---|---|
+| GET | `/api/sdk/deployments` | ❌ | ❌ |
+| POST | `/api/sdk/deployments` | ❌ | ❌ |
+
 ### MCP servers
 
 Removed by the UI rethink (migration 00089, 2026-05-16). The
@@ -289,6 +305,7 @@ programmatically. `tavora dev` re-validates locally on every save.
 |---|---|---|---|
 | GET | `/api/sdk/scheduled-runs` | 🧪 | ✅ |
 | POST | `/api/sdk/scheduled-runs` | 🧪 | ✅ |
+| DELETE | `/api/sdk/scheduled-runs` | 🧪 | ✅ |
 | GET | `/api/sdk/scheduled-runs/:id` | 🧪 | ✅ |
 | PATCH | `/api/sdk/scheduled-runs/:id` | 🧪 | ✅ |
 | DELETE | `/api/sdk/scheduled-runs/:id` | 🧪 | ✅ |

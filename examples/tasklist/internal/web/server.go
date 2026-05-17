@@ -66,7 +66,7 @@ func (s *Server) Routes() http.Handler {
 	})
 
 	// MCP endpoint — auth-gated by the shared secret. The secret must
-	// match the value stored under TASKLIST_BEARER in the Tavora app's
+	// match the value stored under TASKLIST_BEARER in the Tavora project's
 	// secret vault (referenced from agent.jsonc → mcp[].auth.tokenRef).
 	mcpHandler := mcp.NewStreamableHTTPHandler(
 		func(_ *http.Request) *mcp.Server { return s.mcpServer },

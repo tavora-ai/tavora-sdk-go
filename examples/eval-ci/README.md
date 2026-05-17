@@ -8,7 +8,7 @@ your CI runner.
 
 ## Use it
 
-Install the [`tavora`](https://github.com/tavora-ai/tavora-tools) CLI, then:
+Install the [`tavora`](https://github.com/tavora-ai/tavora-cli) CLI, then:
 
 ```sh
 # Author eval cases as JSON files under tavora/agents/<id>/evals/
@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          curl -L https://github.com/tavora-ai/tavora-tools/releases/latest/download/tavora-linux-amd64 -o tavora
+          curl -L https://github.com/tavora-ai/tavora-cli/releases/latest/download/tavora-linux-amd64 -o tavora
           chmod +x tavora
           ./tavora evals run support --gate --timeout 10m
         env:

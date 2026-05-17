@@ -1,6 +1,6 @@
-// Package tavora — secret vaults. Envelope-encrypted, app-scoped
-// vaults of named credentials. Each app designates one vault
-// (PUT /api/sdk/app/vault); the LLM resolver reads provider keys
+// Package tavora — secret vaults. Envelope-encrypted, project-scoped
+// vaults of named credentials. Each project designates one vault
+// (PUT /api/sdk/project/vault); the LLM resolver reads provider keys
 // (openai_api_key, anthropic_api_key, gemini_api_key, …) and the
 // Brave pack reads brave_api_key from it on every dispatch. The
 // agent's JS sandbox cannot read secrets directly — credentials
@@ -23,10 +23,10 @@ import (
 	"time"
 )
 
-// SecretVault is one named vault inside an app.
+// SecretVault is one named vault inside a project.
 type SecretVault struct {
 	ID        string          `json:"id"`
-	AppID     string          `json:"app_id"`
+	ProjectID     string          `json:"project_id"`
 	Name      string          `json:"name"`
 	Metadata  json.RawMessage `json:"metadata"`
 	CreatedAt time.Time       `json:"created_at"`
@@ -67,7 +67,7 @@ func (c *Client) CreateSecretVault(ctx context.Context, input CreateSecretVaultI
 	return &vault, nil
 }
 
-// ListSecretVaults returns every vault in the app.
+// ListSecretVaults returns every vault in the project.
 func (c *Client) ListSecretVaults(ctx context.Context) ([]SecretVault, error) {
 	var resp struct {
 		SecretVaults []SecretVault `json:"secret_vaults"`

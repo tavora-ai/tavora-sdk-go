@@ -128,7 +128,7 @@ each is a self-contained Go module (`cd examples/<name> && go run .`).
 | [`e2e`](./examples/e2e) | Live-server integration tests using `testscript` — gates on `TAVORA_URL` + `TAVORA_API_KEY` env vars |
 
 For deployable tools (interactive chat surface, CI eval gates, etc.), see
-the [`tavora-tools`](https://github.com/tavora-ai/tavora-tools) repo.
+the [`tavora-cli`](https://github.com/tavora-ai/tavora-cli) repo.
 Notable subcommands:
 
 - `tavora evals run --gate` — CI eval gate against app eval cases (replaces the old `eval-ci` example).

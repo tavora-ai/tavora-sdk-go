@@ -49,7 +49,7 @@ func run() error {
 		title        = flag.String("title", "", "session title (default: auto-generated)")
 		systemPrompt = flag.String("system-prompt", defaultSystemPrompt, "agent system prompt")
 		toolsCSV     = flag.String("tools", "", "comma-separated tool names, e.g. 'search,list_stores' (default: empty = sandbox primitives only)")
-		model        = flag.String("model", "", "override model (default: app default)")
+		model        = flag.String("model", "", "override model (default: project default)")
 	)
 	flag.Parse()
 
@@ -62,11 +62,11 @@ func run() error {
 	client := tavora.NewClient(url, key)
 	ctx := context.Background()
 
-	ws, err := client.GetApp(ctx)
+	ws, err := client.GetProject(ctx)
 	if err != nil {
 		return fmt.Errorf("connecting to Tavora: %w", err)
 	}
-	fmt.Printf("Connected to app: %s\n", ws.Name)
+	fmt.Printf("Connected to project: %s\n", ws.Name)
 
 	sessionTitle := *title
 	if sessionTitle == "" {

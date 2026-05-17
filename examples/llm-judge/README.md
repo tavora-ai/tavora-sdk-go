@@ -14,7 +14,7 @@ go run . --answer "the total is $2,657.71"          # grade your own answer
 ```
 
 For full RAG eval with this scoring pattern, use the
-[`tavora` CLI](https://github.com/tavora-ai/tavora-tools):
+[`tavora` CLI](https://github.com/tavora-ai/tavora-cli):
 
 ```sh
 tavora rag-eval judge --gate

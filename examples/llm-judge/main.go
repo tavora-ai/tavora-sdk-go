@@ -3,7 +3,7 @@
 // Asks Gemini to score an assistant's answer against a known
 // ground-truth value on a 0-10 rubric, returning a JSON verdict with
 // score + one-sentence reason. This is the same scoring pattern that
-// powers `tavora rag-eval judge` in tavora-tools, but isolated to ~80
+// powers `tavora rag-eval judge` in tavora-cli, but isolated to ~80
 // lines so SDK readers can see the LLM-as-judge primitive without the
 // surrounding RAG pipeline.
 //

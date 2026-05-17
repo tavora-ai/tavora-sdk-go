@@ -1,4 +1,4 @@
-// Package e2e runs end-to-end tests for the Tavora example apps using testscript.
+// Package e2e runs end-to-end tests for the Tavora example projects using testscript.
 //
 // These tests require a running Tavora instance. Set TAVORA_URL and TAVORA_API_KEY
 // to a dedicated test space. Tests are skipped if these are not set.
@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// buildExample compiles an example app and returns the path to the binary.
+// buildExample compiles an example project and returns the path to the binary.
 func buildExample(t *testing.T, name string) string {
 	t.Helper()
 	srcDir := filepath.Join(examplesDir, name)

@@ -16,7 +16,7 @@ import (
 // `CreateAgentSessionInput` for the input-side shape.
 type AgentSession struct {
 	ID               string          `json:"id"`
-	AppID            string          `json:"app_id"`
+	ProjectID            string          `json:"project_id"`
 	Title            string          `json:"title"`
 	SystemPrompt     string          `json:"system_prompt"`
 	Model            string          `json:"model"`
@@ -63,8 +63,8 @@ type AgentSessionDetail struct {
 // uses the inline fields directly.
 //
 // IndexIDs pins the retrieval surface for the session — nil/empty means
-// "every index in the app"; non-empty restricts the sandbox's search()
-// calls to that allowlist. Each id must belong to the caller's app or
+// "every index in the project"; non-empty restricts the sandbox's search()
+// calls to that allowlist. Each id must belong to the caller's project or
 // session creation fails with 400.
 type CreateAgentSessionInput struct {
 	AgentVersionID string          `json:"agent_version_id,omitempty"`
@@ -143,6 +143,10 @@ const (
 	EventTypeDone = "done"
 	// EventTypeError — terminal. Content holds the error message.
 	EventTypeError = "error"
+	// EventTypeAssetCreated — the sandbox primitive asset.write()
+	// persisted a file. Use AsAsset to extract typed metadata; the
+	// bytes can be fetched via Client.GetAgentAsset(ctx, id).
+	EventTypeAssetCreated = "asset_created"
 )
 
 // IsTerminal reports whether this event ends the SSE stream — the
@@ -192,6 +196,51 @@ func (e AgentEvent) AsInputRequest() *InputRequest {
 		}
 	}
 	return req
+}
+
+// AssetMeta is the typed extraction of an `asset_created` event.
+// The bytes themselves are not in the event — fetch them via
+// Client.GetAgentAsset(ctx, AssetMeta.ID). The disk_path is the
+// server-side relative path under TAVORA_ASSETS_DIR; useful when
+// the SDK consumer runs co-located with the server (e.g. AI coding
+// tools that want to `cat` the file directly).
+type AssetMeta struct {
+	ID       string
+	Name     string
+	Mime     string
+	Size     int64
+	DiskPath string
+}
+
+// AsAsset extracts the typed AssetMeta from an event of
+// `Type == EventTypeAssetCreated`. Returns nil for any other event
+// so callers can write `if a := evt.AsAsset(); a != nil { … }`.
+func (e AgentEvent) AsAsset() *AssetMeta {
+	if e.Type != EventTypeAssetCreated {
+		return nil
+	}
+	a := &AssetMeta{}
+	if v, ok := e.Args["id"].(string); ok {
+		a.ID = v
+	}
+	if v, ok := e.Args["name"].(string); ok {
+		a.Name = v
+	}
+	if v, ok := e.Args["mime"].(string); ok {
+		a.Mime = v
+	}
+	if v, ok := e.Args["disk_path"].(string); ok {
+		a.DiskPath = v
+	}
+	switch v := e.Args["size"].(type) {
+	case float64:
+		a.Size = int64(v)
+	case int64:
+		a.Size = v
+	case int:
+		a.Size = int64(v)
+	}
+	return a
 }
 
 // RunSummary holds aggregate metrics for an agent run.

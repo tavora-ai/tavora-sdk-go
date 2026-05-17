@@ -6,7 +6,7 @@ The standalone Go program is no longer maintained.
 
 ## Use it
 
-Install the [`tavora`](https://github.com/tavora-ai/tavora-tools) CLI:
+Install the [`tavora`](https://github.com/tavora-ai/tavora-cli) CLI:
 
 ```sh
 # Format coverage: does each supported format ingest + index?
@@ -31,7 +31,7 @@ a hand-curated support-doc corpus that didn't generalize.
 The keyword-based retrieval-relevance mode wasn't ported — its case set
 was too tightly coupled to the support-doc corpus. If you want a
 general retrieval-relevance check, use `tavora rag-eval formats` (which
-verifies each format is searchable) or write app-specific cases
+verifies each format is searchable) or write project-specific cases
 via `tavora evals create` + `tavora evals run --gate`.
 
 For the source as it was, see commit history before this README replaced

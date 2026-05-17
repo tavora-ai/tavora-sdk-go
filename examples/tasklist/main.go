@@ -11,7 +11,7 @@
 //	export TAVORA_URL=http://localhost:8080
 //	export TAVORA_API_KEY=tvr_...
 //	export TASKLIST_AGENT_ID=agent_...                 # from `tavora deploy`
-//	export TASKLIST_BEARER=<random>                    # matches the TASKLIST_BEARER secret in the app's vault
+//	export TASKLIST_BEARER=<random>                    # matches the TASKLIST_BEARER secret in the project's vault
 //	export APP_PORT=8090                               # optional, default 8090
 //	export APP_PUBLIC_URL=http://localhost:8090        # optional, derived from APP_PORT
 //	go run .
@@ -49,7 +49,7 @@ func run() error {
 
 	secret := os.Getenv("TASKLIST_BEARER")
 	if secret == "" {
-		return fmt.Errorf("TASKLIST_BEARER must be set to the same value as the TASKLIST_BEARER secret in the Tavora app's vault")
+		return fmt.Errorf("TASKLIST_BEARER must be set to the same value as the TASKLIST_BEARER secret in the Tavora project's vault")
 	}
 
 	port := envOr("APP_PORT", "8090")

@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// AgentConfig is a persistent agent configuration owned by an app.
+// AgentConfig is a persistent agent configuration owned by a project.
 // The live config (persona, skills, stores, provider, model) lives
 // on the agent row directly; AgentVersion rows are append-only
 // history snapshots written by the code-first publish path
@@ -18,7 +18,7 @@ import (
 // for the same reason.
 type AgentConfig struct {
 	ID          string `json:"id"`
-	AppID       string `json:"app_id"`
+	ProjectID       string `json:"project_id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	CreatedBy   string `json:"created_by"`
