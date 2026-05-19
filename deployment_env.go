@@ -32,6 +32,17 @@ type SetDeploymentEnvInput struct {
 	IsSecret bool   `json:"is_secret"`
 }
 
+// DeploymentEnvValue is the response shape of GetDeploymentEnv —
+// one entry's plaintext value. Distinct from the redacted
+// DeploymentEnvEntry returned by List, which deliberately omits
+// the value. The wire carries plaintext on this response; treat
+// the return like the request body of a PUT and don't log it.
+type DeploymentEnvValue struct {
+	Key      string `json:"key"`
+	Value    string `json:"value"`
+	IsSecret bool   `json:"is_secret"`
+}
+
 // ListDeploymentEnv returns every entry on the named deployment in
 // the redacted view. Use this for `tavora env list`.
 //
@@ -45,6 +56,23 @@ func (c *Client) ListDeploymentEnv(ctx context.Context, slug string) ([]Deployme
 		return nil, err
 	}
 	return out.Env, nil
+}
+
+// GetDeploymentEnv returns one entry with its plaintext value.
+// Use this for `tavora env get` / `tavora secret get` and for
+// shell substitution patterns like
+//
+//	export X=$(tavora env get FOO)
+//
+// Endpoint: GET /api/sdk/deployments/{slug}/env/{key}
+func (c *Client) GetDeploymentEnv(ctx context.Context, slug, key string) (*DeploymentEnvValue, error) {
+	var out DeploymentEnvValue
+	path := fmt.Sprintf("/api/sdk/deployments/%s/env/%s",
+		url.PathEscape(slug), url.PathEscape(key))
+	if err := c.get(ctx, path, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
 
 // PutDeploymentEnv upserts one entry. Re-puts of the same key
