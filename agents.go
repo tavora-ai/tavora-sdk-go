@@ -84,6 +84,22 @@ type CreateAgentSessionInput struct {
 	Target  string `json:"target,omitempty"`
 
 	IndexIDs []string `json:"index_ids,omitempty"`
+
+	// SessionVars supplies per-session string values that the server
+	// substitutes into fetchPolicies header templates as
+	// ${session.<key>}. Canonical case: the requesting end-user's
+	// bearer JWT, so the agent's outbound calls back to the host
+	// backend authenticate as that user without the LLM ever seeing
+	// the credential.
+	//
+	// The server envelope-encrypts these at rest, never echoes them
+	// in events or trace renderings, and rejects keys outside
+	// [A-Za-z0-9_]+ or payloads larger than 8 KiB. Storing a
+	// session_var requires the Tavora server to be running with
+	// TAVORA_SECRET_KEK configured; otherwise the create call
+	// returns 503. Write-only — the server never returns the values
+	// back, by design.
+	SessionVars map[string]string `json:"session_vars,omitempty"`
 }
 
 // AgentEvent represents a step event during agent execution. The `Type`

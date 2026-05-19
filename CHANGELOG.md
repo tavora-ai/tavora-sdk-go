@@ -8,6 +8,18 @@ where minor bumps may carry breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- **`SessionVars` on `CreateAgentSessionInput`** — per-session string
+  values the server substitutes into `fetchPolicies` header templates
+  as `${session.<key>}`. Canonical use: forward the requesting end
+  user's bearer JWT so the agent's outbound calls back to the host
+  backend authenticate as that user without the LLM ever seeing the
+  credential. Encrypted at rest on the server; write-only (the server
+  never returns the values back). Requires the server to be running
+  with `TAVORA_SECRET_KEK`; otherwise `CreateAgentSession` returns
+  503. Keys must match `[A-Za-z0-9_]+`; total payload ≤ 8 KiB.
+
 ## [0.4.0] — 2026-05-17
 
 The code-first pivot. Source-sync (`PUT /api/sdk/source-sync`,
