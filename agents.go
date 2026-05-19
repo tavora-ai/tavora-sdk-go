@@ -100,6 +100,38 @@ type CreateAgentSessionInput struct {
 	// returns 503. Write-only — the server never returns the values
 	// back, by design.
 	SessionVars map[string]string `json:"session_vars,omitempty"`
+
+	// FetchPolicies declares which outbound origins receive injected
+	// headers from the sandbox fetch egress shim. Companion to
+	// SessionVars: vars carry the credentials, policies declare where
+	// they go. A header template like "Bearer ${session.jwt}"
+	// resolves at egress against the per-session vars.
+	//
+	// A policy entry's match also acts as explicit allowlist approval
+	// for the origin — declaring auth headers is a stronger opt-in
+	// than any catalog allowlist, so the agent's fetch() to that
+	// origin won't prompt the user.
+	//
+	// Write-only — the server never returns the policy back. Cap of
+	// 16 entries; each origin must be a fully-qualified URL with a
+	// scheme.
+	FetchPolicies []FetchPolicy `json:"fetch_policies,omitempty"`
+}
+
+// FetchPolicy is one origin → headers binding for the sandbox's
+// fetch egress shim. Origin matching uses scheme + host + port (with
+// default ports omitted, host case-insensitive). Header values may
+// contain ${session.<key>} placeholders that resolve against the
+// session's SessionVars at egress.
+type FetchPolicy struct {
+	// Origin is the matching key, e.g. "https://api.example.com" or
+	// "http://localhost:8090". Must include a scheme. Path component
+	// is ignored — origin matching is host-scoped.
+	Origin string `json:"origin"`
+	// Headers map of name → value-template applied on a match. Policy
+	// headers override any LLM-supplied same-name headers in the
+	// agent's fetch() call (the prompt-injection seatbelt).
+	Headers map[string]string `json:"headers"`
 }
 
 // AgentEvent represents a step event during agent execution. The `Type`

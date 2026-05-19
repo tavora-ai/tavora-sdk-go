@@ -20,6 +20,16 @@ where minor bumps may carry breaking changes.
   with `TAVORA_SECRET_KEK`; otherwise `CreateAgentSession` returns
   503. Keys must match `[A-Za-z0-9_]+`; total payload ≤ 8 KiB.
 
+- **`FetchPolicies` on `CreateAgentSessionInput`** + new `FetchPolicy`
+  type. Declares which outbound origins the sandbox's fetch egress
+  shim injects headers into. Companion to `SessionVars` — vars carry
+  credentials, policies declare where they go. A header template
+  like `"Bearer ${session.jwt}"` resolves at egress against the
+  session's vars. A policy match also acts as explicit allowlist
+  approval for the origin (so the agent's fetch() to that origin
+  doesn't trigger a per-URL prompt). Write-only; cap of 16 entries;
+  each origin must include a scheme.
+
 ## [0.4.0] — 2026-05-17
 
 The code-first pivot. Source-sync (`PUT /api/sdk/source-sync`,
