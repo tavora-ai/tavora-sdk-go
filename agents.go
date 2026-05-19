@@ -116,6 +116,16 @@ type CreateAgentSessionInput struct {
 	// 16 entries; each origin must be a fully-qualified URL with a
 	// scheme.
 	FetchPolicies []FetchPolicy `json:"fetch_policies,omitempty"`
+
+	// Context is the per-session map the LLM reads via the context()
+	// primitive (timezone, locale, … and host-supplied lookups like
+	// a backend_url that skills use to compute outbound URLs). Plain
+	// key→value; the runtime stringifies values. Unlike SessionVars,
+	// values here ARE visible to JS-emitted code — only put
+	// non-secret data here. Pass a base URL for a fetch policy via
+	// this map, then declare the matching policy entry under
+	// FetchPolicies.
+	Context map[string]string `json:"context,omitempty"`
 }
 
 // FetchPolicy is one origin → headers binding for the sandbox's
