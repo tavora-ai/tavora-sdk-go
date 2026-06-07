@@ -1,0 +1,21 @@
+// Committed, in-repo workspace. Binds the cli module (and the examples)
+// to the SDK in this same tree so local builds, tests, and worktrees
+// resolve github.com/tavora-ai/tavora-sdk-go from `.` — no per-checkout
+// setup, no `replace` in cli/go.mod.
+//
+// `go install …/cli/cmd/tavora@VERSION` ignores this file (workspace
+// mode is off for versioned installs) and resolves the SDK from cli's
+// `require` against the module proxy — so the published install path
+// keeps working without the dev-only relative paths leaking into it.
+
+go 1.25.0
+
+use (
+	.
+	./cli
+	./examples/chat
+	./examples/e2e
+	./examples/knowledge-base
+	./examples/llm-judge
+	./examples/tasklist
+)

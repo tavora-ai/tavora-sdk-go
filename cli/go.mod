@@ -2,9 +2,10 @@ module github.com/tavora-ai/tavora-sdk-go/cli
 
 go 1.25.0
 
-// Monorepo: build the CLI against the SDK in the same tree rather than
-// a published tag. The version below is a placeholder satisfied by replace.
-replace github.com/tavora-ai/tavora-sdk-go => ../
+// Monorepo: local builds resolve the SDK from the repo root via the
+// committed ../go.work (workspace mode). The require below is the
+// published version used by `go install …/cli/cmd/tavora@VERSION`,
+// which ignores go.work. Bump it when a new SDK tag is cut.
 
 require (
 	charm.land/bubbles/v2 v2.1.0
@@ -19,7 +20,7 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
-	github.com/tavora-ai/tavora-sdk-go v0.0.0
+	github.com/tavora-ai/tavora-sdk-go v0.5.0
 	google.golang.org/genai v1.55.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
