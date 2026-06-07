@@ -3,8 +3,8 @@
 Developer tools for the [Tavora](https://tavora.ai) agentic intelligence
 platform. This is the `cli/` module of the
 [`tavora-sdk-go`](https://github.com/tavora-ai/tavora-sdk-go) monorepo —
-local builds resolve the SDK from the same tree via the committed
-repo-root `go.work`. One binary, one module:
+it builds against the SDK in the same tree via a `replace` directive.
+One binary, one module:
 
 | Binary | Purpose |
 |---|---|
@@ -111,11 +111,8 @@ The CLI is co-located with the SDK in one repo, as two modules:
 The CLI is the *only* dependency edge — nothing in the SDK depends back
 on it — so the SDK module stays dependency-free for library consumers
 while the CLI's `cobra`/`bubbletea`/`charmbracelet` deps are quarantined
-in `cli/go.mod`. A committed repo-root `go.work` (`use ( . ./cli
-./examples/* )`) binds the CLI to the in-tree SDK for local builds,
-tests, and worktrees — no `replace`, no per-checkout setup. `go install`
-ignores `go.work` and uses `cli/go.mod`'s pinned SDK `require`, so the
-published install path is unaffected by the dev-only relative paths.
+in `cli/go.mod`. A `replace github.com/tavora-ai/tavora-sdk-go => ../`
+binds the CLI to the in-tree SDK so the two always build together.
 
 ## Install
 
@@ -128,21 +125,17 @@ npm i -g @tavora/cli            # or pnpm add -g, yarn global add
 # Homebrew (tap not yet published — coming alongside first tagged release)
 brew install tavora-ai/tap/tavora
 
-# go install (resolves the SDK from cli/go.mod's pinned require)
-go install github.com/tavora-ai/tavora-sdk-go/cli/cmd/tavora@latest
-
-# From a clone (uses the in-repo go.work)
+# From source
 git clone https://github.com/tavora-ai/tavora-sdk-go
 cd tavora-sdk-go/cli
 go install ./cmd/tavora
 ```
 
-> **Note:** the `go install …@latest` form needs two things published
-> first: a `cli/vX.Y.Z` module tag, and a SDK tag (pinned in
-> `cli/go.mod`) that actually contains the symbols the CLI uses. The CLI
-> currently tracks unreleased SDK changes, so until the next SDK release
-> is cut and `cli/go.mod`'s `require` is bumped to it, install from a
-> clone or via npm/Homebrew.
+> **Note:** because `cli/go.mod` carries a committed `replace
+> github.com/tavora-ai/tavora-sdk-go => ../`, the remote
+> `go install github.com/tavora-ai/tavora-sdk-go/cli/cmd/tavora@latest`
+> form does **not** work (the `../` path is absent from the module
+> cache). Install from a clone, or via npm/Homebrew.
 
 The npm package (`./npm/`) is a thin shim over the same Go binary —
 it downloads the platform-specific prebuilt on `postinstall`. See
@@ -177,7 +170,7 @@ tavora-sdk-go/cli/
 ├── internal/
 │   ├── codefirst/          # source loader / validator / runs / scaffold
 │   └── tui/                # interactive TUI (Bubble Tea v2 + bubbles v2 + lipgloss v2)
-├── go.mod                  # module …/tavora-sdk-go/cli (SDK bound via ../go.work)
+├── go.mod                  # module …/tavora-sdk-go/cli, replace => ../
 └── README.md
 ```
 
@@ -192,15 +185,10 @@ go run ./cmd/tavora tui              # TUI from source
 
 ### Working against the SDK
 
-No setup needed: the committed repo-root `go.work` puts the CLI and the
-SDK in one workspace, so the build always resolves the SDK from the repo
-root. Edit SDK code in the root module and rebuild the CLI — changes are
-picked up immediately, no `replace`, no tag bump.
-
-When you cut a new SDK release that the CLI depends on, bump
-`cli/go.mod`'s `require github.com/tavora-ai/tavora-sdk-go vX.Y.Z` to it
-so `go install …/cli/cmd/tavora@latest` (which ignores `go.work`)
-resolves a SDK version that actually has the symbols.
+No setup needed: `cli/go.mod` carries a committed `replace
+github.com/tavora-ai/tavora-sdk-go => ../`, so the build always resolves
+the SDK from the repo root. Edit SDK code in the root module and rebuild
+the CLI — changes are picked up immediately, no tag bump or `go.work`.
 
 ## License
 

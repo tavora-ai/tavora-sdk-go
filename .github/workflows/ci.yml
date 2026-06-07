@@ -21,7 +21,7 @@ jobs:
         run: go test ./...
       # cli/ is a separate module (heavy TUI deps quarantined there);
       # ./... from the root does not reach it, so test it explicitly.
-      # The repo-root go.work binds it to the in-tree SDK.
+      # It builds against the in-tree SDK via `replace => ../`.
       # NOTE: `go vet ./...` currently fails in cli/ on pre-existing test
       # findings ("using resp before checking for errors" in
       # internal/fakeback/server/server_test.go) that predate the monorepo
