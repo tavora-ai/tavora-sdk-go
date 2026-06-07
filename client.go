@@ -172,6 +172,9 @@ func (c *Client) uploadReader(ctx context.Context, path, filename string, reader
 }
 
 func checkError(resp *resty.Response) error {
+	if err := checkMockResponse(resp.Header()); err != nil {
+		return err
+	}
 	if resp.StatusCode() >= 400 {
 		apiErr := parseAPIError(resp.StatusCode(), resp.Body())
 		if apiErr.Message == "" {

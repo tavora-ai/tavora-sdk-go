@@ -372,6 +372,10 @@ func (c *Client) RunAgent(ctx context.Context, sessionID, message string, onEven
 	}
 	defer resp.RawBody().Close()
 
+	if err := checkMockResponse(resp.Header()); err != nil {
+		return err
+	}
+
 	if resp.StatusCode() >= 400 {
 		body, _ := io.ReadAll(resp.RawBody())
 		apiErr := parseAPIError(resp.StatusCode(), body)
