@@ -1,0 +1,36 @@
+name: slow-stream
+description: >
+  Same shape as happy-path but with 2-second pacing so a screencast
+  pauses naturally on each step. Useful for demos and presentations.
+
+sse:
+  - delay: 2s
+    type: sandbox_event
+    data:
+      content: "Thinking about the request..."
+  - delay: 2s
+    type: execute_js
+    data:
+      content: "console.log('hello from mock')"
+      tool: execute_js
+  - delay: 2s
+    type: execute_js_result
+    data:
+      content: "hello from mock"
+      result: "hello from mock"
+  - delay: 2s
+    type: response
+    data:
+      content: "Hello from the tavora-mock slow-stream scenario."
+      tokens:
+        prompt: 120
+        completion: 8
+  - delay: 1s
+    type: done
+    data:
+      summary:
+        session_id: "mock-session-slow-stream"
+        steps: 2
+        tokens:
+          prompt: 120
+          completion: 8

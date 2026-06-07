@@ -1,0 +1,156 @@
+# ⚠️ INERT IN THE MONOREPO. GitHub Actions only reads workflows from the
+# repo-root `.github/workflows/`, so this file at `cli/.github/workflows/`
+# does NOT run. To re-activate CLI releases, move it to the repo root and
+# adapt for the monorepo: (a) trigger on a submodule tag like `cli/v*`
+# rather than `v*` (which now collides with the SDK's own release tags),
+# (b) run goreleaser / go build with `working-directory: cli`, and
+# (c) reconcile npm/install.js's `releases/download/v${VERSION}/` URL with
+#     whatever tag scheme you pick. Kept here as a starting template.
+#
+# Release workflow — fires on `v*` tag push and does three things:
+#
+#   1. `goreleaser` — cuts the GitHub Release, builds the tarball
+#      archives for direct/Homebrew download (darwin + linux only).
+#   2. `npm-publish` — cross-compiles the binaries in the *npm* shape
+#      (raw `.gz`, named `tavora-<os>-<arch>.gz`, includes Windows),
+#      uploads them to the same Release, then publishes both
+#      `@tavora/cli` and `create-tavora` to npm.
+#
+# To cut a release:
+#   # 1. Bump version in BOTH npm/package.json AND create-tavora/package.json
+#   # 2. Commit the bumps
+#   git tag -a v0.1.0 -m "v0.1.0"
+#   git push origin v0.1.0
+#
+# Required repository secrets:
+#   NPM_TOKEN                    — npm access token with publish rights
+#                                  for @tavora/cli and create-tavora.
+# Optional repository secrets:
+#   HOMEBREW_TAP_GITHUB_TOKEN    — only needed once the Homebrew tap
+#                                  in .goreleaser.yml is uncommented.
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+  # Runs after goreleaser so the GitHub Release exists before we
+  # upload the npm-shape `.gz` binaries to it, and so the npm
+  # postinstall download URL is reachable the moment @tavora/cli
+  # appears on the registry.
+  npm-publish:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Cheap guard against shipping a broken @tavora/cli: install.js
+      # hardcodes `v${pkg.version}` into its download URL, so the npm
+      # package version MUST equal the tag. Same for create-tavora —
+      # we keep both in lockstep so users always get a matched pair.
+      - name: Verify package versions match tag
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME#v}"
+          NPM_VERSION=$(node -p "require('./npm/package.json').version")
+          CREATE_VERSION=$(node -p "require('./create-tavora/package.json').version")
+          if [ "$TAG" != "$NPM_VERSION" ]; then
+            echo "::error::Tag v$TAG does not match npm/package.json version ($NPM_VERSION). Bump it and re-tag."
+            exit 1
+          fi
+          if [ "$TAG" != "$CREATE_VERSION" ]; then
+            echo "::error::Tag v$TAG does not match create-tavora/package.json version ($CREATE_VERSION). Bump it and re-tag."
+            exit 1
+          fi
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Mirrors tavora-cli/npm/README.md §Releasing. The artifact
+      # names here are load-bearing — they're hardcoded in
+      # npm/install.js's ARTIFACTS map; renaming requires updating
+      # both sides at once.
+      - name: Cross-compile binaries (npm-shape .gz)
+        run: |
+          set -euxo pipefail
+          mkdir -p npm/dist
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          VERSION="${GITHUB_REF_NAME#v}"
+          LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${GITHUB_SHA} -X main.buildDate=${BUILD_DATE}"
+          build() {
+            local goos="$1" goarch="$2" out="$3"
+            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 \
+              go build -trimpath -ldflags="$LDFLAGS" -o "npm/dist/$out" ./cmd/tavora
+            gzip -9 "npm/dist/$out"
+          }
+          build darwin  arm64 tavora-darwin-arm64
+          build darwin  amd64 tavora-darwin-amd64
+          build linux   arm64 tavora-linux-arm64
+          build linux   amd64 tavora-linux-amd64
+          build windows amd64 tavora-windows-amd64.exe
+
+      # --clobber so a re-run of the same tag overwrites partial
+      # uploads from a previous failed attempt rather than erroring.
+      # The Release was already created by goreleaser; this just adds
+      # assets to it.
+      - name: Upload .gz binaries to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${GITHUB_REF_NAME}" npm/dist/*.gz --clobber
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      # @tavora/cli must publish before create-tavora attempts to
+      # exec `npx --yes @tavora/cli` for any user. The .gz upload
+      # above must also already have happened — install.js fetches
+      # the binary at install time, and a 404 there breaks every
+      # first install.
+      - name: Publish @tavora/cli
+        working-directory: npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
+      - name: Publish create-tavora
+        working-directory: create-tavora
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

@@ -1,0 +1,14 @@
+name: legacy-key
+description: >
+  The CLI's bind-flow tried to record ownership for an API key that
+  predates the owner-tracking column. Regression-pin for the 400 the
+  CLI used to surface as a confusing "this API key has no recorded
+  owner" message — the mock returns the same shape so a CLI test
+  asserting the error path can run hermetically.
+
+status: 400
+body:
+  code: api_key_no_owner
+  message: "this API key has no recorded owner; recreate the key in the dashboard to enable bind"
+  status: 400
+  hint: "Project Settings → API Keys → Rotate"

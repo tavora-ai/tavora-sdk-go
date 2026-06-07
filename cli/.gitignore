@@ -1,0 +1,22 @@
+# Build output
+/bin/
+/dist/
+/tavora
+/cmd/tavora/tavora
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Test artifacts
+*.out
+*.test
+coverage.html
+coverage.txt
+
+# local dev workspace (not committed)
+go.work
+go.work.sum

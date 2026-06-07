@@ -1,0 +1,13 @@
+name: service-not-configured
+description: >
+  Server is up but the TAVORA_SECRET_KEK envelope-encryption key isn't
+  set. The agent-run endpoint refuses before the SSE stream opens.
+  Regression-pin for the fix that landed when session_vars introduced
+  the KEK dependency.
+
+status: 503
+body:
+  code: service_not_configured
+  message: "TAVORA_SECRET_KEK is required to encrypt session_vars at rest"
+  status: 503
+  hint: "set TAVORA_SECRET_KEK in the server environment and restart"

@@ -1,0 +1,18 @@
+name: context-invalid
+description: >
+  agent.jsonc's `context: {}` block has a key that doesn't match the
+  required lowercase snake_case shape, OR a value that references a
+  disallowed namespace (only ${env.X} is permitted). Regression-pin
+  the 422 shape for the context_invalid code.
+
+status: 422
+body:
+  code: context_invalid
+  status: 422
+  message: 'agent.jsonc context block has invalid keys or value templates'
+  issues:
+    - file: "agent.jsonc"
+      code: "context_invalid"
+      severity: "fatal"
+      message: 'context["BACKEND_URL"]: key must match ^[a-z][a-z0-9_]*$ (lowercase snake_case)'
+      hint: "keys must be lowercase snake_case; values may reference ${env.X} only — see docs/agent-env-context-concept.md"
