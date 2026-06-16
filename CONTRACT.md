@@ -277,12 +277,22 @@ editable drafts (no pins). Flow: `tavora dev` (drafts) →
 `tavora deploy --env staging` (cut + pin) → `tavora promote --to prod`
 (copy pins) — or `tavora ship` to do the last two in one step.
 
+**Release history + rollback.** Every cut/promote/rollback appends an
+immutable release snapshot (the full `{agent → version}` set) to the
+environment's append-only log. `releases` lists the log newest-first
+(each row carries `seq`, `action`, `agent_count`, `created_at`);
+`rollback` re-applies a chosen release's snapshot into the environment —
+a pure re-pin recording a fresh `action='rollback'` release. The
+`release_id` must belong to the target environment (a foreign id is a
+404), and no new versions are cut.
+
 The platform serves these on BOTH the protected (JWT) and SDK (X-API-Key)
 APIs; the SDK client uses the `/api/sdk/*` surface below. Tenant is the
 caller's user id. CLI drivers: `tavora deploy --env staging|prod`
 (CutRelease), `tavora promote --to prod` (PromoteDeployment),
-`tavora status` (list + pins), `tavora dev` (ensure-dev), `tavora env`
-(env CRUD).
+`tavora status` (list + pins), `tavora releases --env prod` (ListReleases),
+`tavora rollback --env prod --to <#>` (Rollback), `tavora dev`
+(ensure-dev), `tavora env` (env CRUD).
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
@@ -292,6 +302,8 @@ caller's user id. CLI drivers: `tavora deploy --env staging|prod`
 | GET | `/api/sdk/deployments/{slug}` | 🧪 | — |
 | POST | `/api/sdk/projects/{project}/deployments/{slug}/promote` (body `{to_kind?}`) | 🧪 | — |
 | GET | `/api/sdk/projects/{project}/deployments/{slug}/pins` | 🧪 | — |
+| GET | `/api/sdk/projects/{project}/deployments/{slug}/releases` | 🧪 | — |
+| POST | `/api/sdk/projects/{project}/deployments/{slug}/rollback` (body `{release_id}`) | 🧪 | — |
 | GET | `/api/sdk/projects/{project}/deployments/{slug}/env` | 🧪 | — |
 | GET | `/api/sdk/projects/{project}/deployments/{slug}/env/{key}` | 🧪 | — |
 | PUT | `/api/sdk/projects/{project}/deployments/{slug}/env/{key}` | 🧪 | — |

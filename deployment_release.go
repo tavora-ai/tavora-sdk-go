@@ -42,11 +42,29 @@ type VersionPin struct {
 	PromotedAt    time.Time `json:"promoted_at"`
 }
 
-// Release is the result of a cut/promote: the target environment plus
-// its full pin set afterwards.
+// Release is the result of a cut/promote/rollback: the target environment
+// plus its full pin set afterwards, and the history row the operation
+// recorded (ReleaseID/Seq/Action — see ReleaseRecord).
 type Release struct {
 	Deployment ProjectEnvironment `json:"deployment"`
 	Pins       []VersionPin       `json:"pins"`
+	ReleaseID  string             `json:"release_id,omitempty"`
+	Seq        int64              `json:"seq,omitempty"`
+	Action     string             `json:"action,omitempty"` // "cut" | "promote" | "rollback"
+}
+
+// ReleaseRecord is one entry in an environment's append-only release
+// history: a named {agent -> version} snapshot a rollback can re-apply.
+type ReleaseRecord struct {
+	ID              string    `json:"id"`
+	DeploymentID    string    `json:"deployment_id"`
+	Seq             int64     `json:"seq"`
+	Action          string    `json:"action"` // "cut" | "promote" | "rollback"
+	SourceReleaseID string    `json:"source_release_id,omitempty"`
+	Note            string    `json:"note,omitempty"`
+	CreatedBy       string    `json:"created_by,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	AgentCount      int64     `json:"agent_count"`
 }
 
 // CutRelease cuts a release into the project's STAGING environment,
@@ -97,4 +115,35 @@ func (c *Client) ListDeploymentPins(ctx context.Context, project, slug string) (
 		return nil, err
 	}
 	return out.Pins, nil
+}
+
+// ListReleases returns an environment's release history, newest first —
+// the snapshots Rollback can re-apply.
+//
+// Endpoint: GET /api/sdk/projects/{project}/deployments/{slug}/releases
+func (c *Client) ListReleases(ctx context.Context, project, slug string) ([]ReleaseRecord, error) {
+	var out struct {
+		Releases []ReleaseRecord `json:"releases"`
+	}
+	path := fmt.Sprintf("/api/sdk/projects/%s/deployments/%s/releases",
+		url.PathEscape(project), url.PathEscape(slug))
+	if err := c.get(ctx, path, &out); err != nil {
+		return nil, err
+	}
+	return out.Releases, nil
+}
+
+// Rollback re-applies a prior release's pin set into its environment,
+// recording a fresh rollback release. releaseID must belong to the
+// (project, slug) environment. No new versions are cut — a pure re-pin.
+//
+// Endpoint: POST /api/sdk/projects/{project}/deployments/{slug}/rollback
+func (c *Client) Rollback(ctx context.Context, project, slug, releaseID string) (*Release, error) {
+	var out Release
+	path := fmt.Sprintf("/api/sdk/projects/%s/deployments/%s/rollback",
+		url.PathEscape(project), url.PathEscape(slug))
+	if err := c.post(ctx, path, map[string]string{"release_id": releaseID}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
 }
