@@ -1,0 +1,60 @@
+name: lazy-skill-discovery
+description: >
+  Multi-step SSE trace: the agent calls skillList(), then skillGet('math'),
+  then require('math'), then executes a JS block that uses it. Useful
+  for screencasts demonstrating the four-step lazy-loading path the
+  sandbox exposes.
+
+sse:
+  - delay: 150ms
+    type: sandbox_event
+    data:
+      content: "Looking up available skills..."
+  - delay: 200ms
+    type: execute_js
+    data:
+      content: "const skills = await skillList();"
+      tool: execute_js
+  - delay: 200ms
+    type: execute_js_result
+    data:
+      result: ["math", "calendar", "search"]
+      content: '["math","calendar","search"]'
+  - delay: 200ms
+    type: execute_js
+    data:
+      content: "const meta = await skillGet('math');"
+      tool: execute_js
+  - delay: 200ms
+    type: execute_js_result
+    data:
+      result:
+        name: "math"
+        description: "Arithmetic, statistics, basic algebra."
+      content: "skill meta loaded"
+  - delay: 200ms
+    type: execute_js
+    data:
+      content: "const math = await require('math'); return math.sum([1,2,3]);"
+      tool: execute_js
+  - delay: 250ms
+    type: execute_js_result
+    data:
+      result: 6
+      content: "6"
+  - delay: 200ms
+    type: response
+    data:
+      content: "Sum is 6."
+      tokens:
+        prompt: 240
+        completion: 4
+  - delay: 100ms
+    type: done
+    data:
+      summary:
+        session_id: "mock-session-lazy-skill"
+        steps: 4
+        tokens:
+          prompt: 240
+          completion: 4

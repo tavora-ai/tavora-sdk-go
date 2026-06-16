@@ -1,0 +1,18 @@
+name: unresolved-template
+description: >
+  A fetchPolicies header template references ${env.BACKEND_URL} but
+  that key isn't in the deployment env. The run endpoint refuses with
+  a 422 + structured issues list. Regression-pin for the
+  ${env.BACKEND_URL} miss that the CLI surfaced in dev-mode bring-up.
+
+status: 422
+body:
+  code: unresolved_template
+  message: "agent declares fetchPolicies referencing unset env keys"
+  status: 422
+  issues:
+    - file: "agent.jsonc"
+      code: "unresolved-template"
+      message: "${env.BACKEND_URL} is referenced but not set on the deployment"
+      severity: "error"
+      hint: "tavora env set BACKEND_URL https://api.example.com"

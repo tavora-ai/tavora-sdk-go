@@ -1,0 +1,29 @@
+{
+  "name": "create-tavora",
+  "version": "0.0.1",
+  "description": "Scaffold a Tavora agents project — `npm create tavora`.",
+  "homepage": "https://docs.tavora.ai/code-first",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tavora-ai/tavora-sdk-go.git",
+    "directory": "create-tavora"
+  },
+  "license": "MIT",
+  "bin": {
+    "create-tavora": "bin/index.js"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "tavora",
+    "ai",
+    "agent",
+    "scaffold",
+    "create"
+  ]
+}

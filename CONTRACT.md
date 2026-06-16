@@ -260,19 +260,58 @@ contents.
 | POST | `/api/sdk/source-rename` | 🧪 | ✅ |
 | POST | `/api/sdk/source-delete` | 🧪 | ✅ |
 
-### Deployments
+### Deployments (project environments + version pins — Tier 3)
 
-Convex-style dev/staging/prod environments per project. `tavora init`
-mints a personal dev deployment via POST; the CLI reads/writes
-`tavora/.env.local` with `TAVORA_DEPLOYMENT=<kind>:<slug>` and attaches
-`X-Tavora-Deployment` to every subsequent request so source-sync routes
-to the right deployment row. See `tavora-go/docs/code-first-agents-concept.md`
-§Environments for the schema + lifecycle.
+dev/staging/prod environments per project. A deployment is an environment
+holding one pinned published version per agent — an immutable
+`{agent → version}` snapshot — plus a shared env/secret store. Cutting a
+release diffs each agent by `source_hash`: an unchanged agent keeps its
+version, a changed one gets a new published version, and the pins are
+updated atomically.
+
+**Releases are cut into STAGING only; production is promote-only.** The
+cut endpoint always targets staging (no `kind` in the body); prod is
+reached exclusively by promoting staging's pin set, so what ships is
+exactly what was validated in staging. `dev` is per-developer and runs
+editable drafts (no pins). Flow: `tavora dev` (drafts) →
+`tavora deploy --env staging` (cut + pin) → `tavora promote --to prod`
+(copy pins) — or `tavora ship` to do the last two in one step.
+
+**Release history + rollback.** Every cut/promote/rollback appends an
+immutable release snapshot (the full `{agent → version}` set) to the
+environment's append-only log. `releases` lists the log newest-first
+(each row carries `seq`, `action`, `agent_count`, `created_at`);
+`rollback` re-applies a chosen release's snapshot into the environment —
+a pure re-pin recording a fresh `action='rollback'` release. The
+`release_id` must belong to the target environment (a foreign id is a
+404), and no new versions are cut.
+
+The platform serves these on BOTH the protected (JWT) and SDK (X-API-Key)
+APIs; the SDK client uses the `/api/sdk/*` surface below. Tenant is the
+caller's user id. CLI drivers: `tavora deploy --env staging|prod`
+(CutRelease), `tavora promote --to prod` (PromoteDeployment),
+`tavora status` (list + pins), `tavora releases --env prod` (ListReleases),
+`tavora rollback --env prod --to <#>` (Rollback), `tavora dev`
+(ensure-dev), `tavora env` (env CRUD).
 
 | Method | Path | Go SDK | TS SDK |
 |---|---|---|---|
-| GET | `/api/sdk/deployments` | ❌ | ❌ |
-| POST | `/api/sdk/deployments` | ❌ | ❌ |
+| GET | `/api/sdk/projects/{project}/deployments` | 🧪 | — |
+| POST | `/api/sdk/projects/{project}/deployments` (cut staging release; no body) | 🧪 | — |
+| POST | `/api/sdk/projects/{project}/deployments/ensure-dev` | 🧪 | — |
+| GET | `/api/sdk/deployments/{slug}` | 🧪 | — |
+| POST | `/api/sdk/projects/{project}/deployments/{slug}/promote` (body `{to_kind?}`) | 🧪 | — |
+| GET | `/api/sdk/projects/{project}/deployments/{slug}/pins` | 🧪 | — |
+| GET | `/api/sdk/projects/{project}/deployments/{slug}/releases` | 🧪 | — |
+| POST | `/api/sdk/projects/{project}/deployments/{slug}/rollback` (body `{release_id}`) | 🧪 | — |
+| GET | `/api/sdk/projects/{project}/deployments/{slug}/env` | 🧪 | — |
+| GET | `/api/sdk/projects/{project}/deployments/{slug}/env/{key}` | 🧪 | — |
+| PUT | `/api/sdk/projects/{project}/deployments/{slug}/env/{key}` | 🧪 | — |
+| DELETE | `/api/sdk/projects/{project}/deployments/{slug}/env/{key}` | 🧪 | — |
+
+Legacy note: the earlier project-less `GET/POST /api/sdk/deployments` and
+the `source-promote` / `source-status` (release-number) endpoints are
+superseded by the routes above and are not served by the platform backend.
 
 ### MCP servers
 

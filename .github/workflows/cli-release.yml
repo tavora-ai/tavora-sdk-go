@@ -1,0 +1,155 @@
+# Release workflow for the `tavora` CLI (the cli/ module).
+#
+# Fires on `cli/v*` tag pushes. The `cli/` prefix keeps CLI releases
+# from colliding with the SDK's own `v*` tags — the two modules in this
+# monorepo release on independent cadences (Option A).
+#
+# Why shell instead of goreleaser: goreleaser's monorepo tag-prefix
+# support (needed to derive `0.2.0` from a `cli/v0.2.0` tag) is a
+# GoReleaser Pro feature; the OSS binary rejects a non-semver tag. The
+# cross-compile + archive + release steps below reproduce what the old
+# goreleaser config did, with no Pro dependency. cli/.goreleaser.yml is
+# kept for local snapshot smoke tests only (see its header).
+#
+# To cut a release:
+#   # 1. Bump version in BOTH cli/npm/package.json AND
+#   #    cli/create-tavora/package.json to e.g. 0.2.0
+#   # 2. Commit the bumps
+#   git tag -a cli/v0.2.0 -m "tavora CLI v0.2.0"
+#   git push origin cli/v0.2.0
+#
+# Required repository secrets:
+#   NPM_TOKEN  — npm access token with publish rights for @tavora/cli
+#                and create-tavora.
+
+name: cli-release
+
+on:
+  push:
+    tags:
+      - "cli/v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+          cache: true
+          cache-dependency-path: cli/go.sum
+
+      - name: Derive version from tag
+        id: ver
+        run: |
+          set -euo pipefail
+          # GITHUB_REF_NAME is the full tag, e.g. cli/v0.2.0
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${GITHUB_REF_NAME#cli/v}" >> "$GITHUB_OUTPUT"
+
+      # install.js hardcodes `cli/v${pkg.version}` into its download URL,
+      # so the npm package version MUST equal the tag. Same for
+      # create-tavora — kept in lockstep so users get a matched pair.
+      - name: Verify npm package versions match tag
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.ver.outputs.version }}"
+          NPM_VERSION=$(node -p "require('./npm/package.json').version")
+          CREATE_VERSION=$(node -p "require('./create-tavora/package.json').version")
+          if [ "$VERSION" != "$NPM_VERSION" ]; then
+            echo "::error::Tag cli/v$VERSION does not match npm/package.json version ($NPM_VERSION). Bump it and re-tag."
+            exit 1
+          fi
+          if [ "$VERSION" != "$CREATE_VERSION" ]; then
+            echo "::error::Tag cli/v$VERSION does not match create-tavora/package.json version ($CREATE_VERSION). Bump it and re-tag."
+            exit 1
+          fi
+
+      - name: Cross-compile binaries
+        run: |
+          set -euxo pipefail
+          VERSION="${{ steps.ver.outputs.version }}"
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${GITHUB_SHA} -X main.buildDate=${BUILD_DATE}"
+          mkdir -p dist npm/dist
+
+          # Archive shape: one stripped tar.gz per os/arch, bundling the
+          # binary + README + LICENSE. Matches the artifact names the old
+          # goreleaser config produced (tavora_<ver>_<os>_<arch>.tar.gz).
+          archive() {
+            local goos="$1" goarch="$2" label="$3"
+            local bdir="dist/stage_${goos}_${goarch}"
+            mkdir -p "$bdir"
+            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 \
+              go build -trimpath -ldflags="$LDFLAGS" -o "$bdir/tavora" ./cmd/tavora
+            cp README.md "$bdir/README.md"
+            cp ../LICENSE "$bdir/LICENSE"
+            tar -C "$bdir" -czf "dist/tavora_${VERSION}_${label}.tar.gz" .
+          }
+          archive darwin arm64 darwin_arm64
+          archive darwin amd64 darwin_x86_64
+          archive linux  arm64 linux_arm64
+          archive linux  amd64 linux_x86_64
+          ( cd dist && sha256sum tavora_*.tar.gz > checksums.txt )
+
+          # npm shape: bare gzipped binaries named per the ARTIFACTS map
+          # in npm/install.js. These names are load-bearing — renaming
+          # one requires updating install.js at the same time.
+          npm_build() {
+            local goos="$1" goarch="$2" out="$3"
+            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 \
+              go build -trimpath -ldflags="$LDFLAGS" -o "npm/dist/$out" ./cmd/tavora
+            gzip -9 "npm/dist/$out"
+          }
+          npm_build darwin  arm64 tavora-darwin-arm64
+          npm_build darwin  amd64 tavora-darwin-amd64
+          npm_build linux   arm64 tavora-linux-arm64
+          npm_build linux   amd64 tavora-linux-amd64
+          npm_build windows amd64 tavora-windows-amd64.exe
+
+      # Creates the GitHub Release at the `cli/v*` tag and uploads both
+      # archive shapes. --verify-tag ensures the pushed tag exists;
+      # --generate-notes uses GitHub's auto changelog from merged PRs.
+      - name: Create GitHub Release and upload assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euxo pipefail
+          gh release create "${{ steps.ver.outputs.tag }}" \
+            --title "tavora CLI ${{ steps.ver.outputs.tag }}" \
+            --verify-tag \
+            --generate-notes \
+            dist/tavora_*.tar.gz dist/checksums.txt npm/dist/*.gz
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      # @tavora/cli's postinstall (install.js) fetches the .gz binary
+      # from the Release created above, so the upload must already have
+      # happened before this publishes.
+      - name: Publish @tavora/cli
+        working-directory: cli/npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
+      - name: Publish create-tavora
+        working-directory: cli/create-tavora
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

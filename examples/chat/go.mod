@@ -1,6 +1,6 @@
 module github.com/tavora-ai/tavora-sdk-go/examples/chat
 
-go 1.25.0
+go 1.25.7
 
 require github.com/tavora-ai/tavora-sdk-go v0.0.0
 

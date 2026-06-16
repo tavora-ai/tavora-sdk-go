@@ -31,6 +31,51 @@ func TestCreateAgentSession(t *testing.T) {
 	assertEqual(t, "tools count", len(body.Tools), 2)
 }
 
+func TestCreateAgentSession_SessionVars_WireShape(t *testing.T) {
+	// Two properties we want to pin:
+	//   1. SessionVars round-trips through the request body untouched
+	//      so the server can substitute ${session.X} into fetchPolicies.
+	//   2. Omitting SessionVars means it's absent from the wire — not
+	//      present-as-null — so existing 0.4.x callers' payloads stay
+	//      byte-identical.
+	ts := newTestServer(t)
+	ts.on(http.MethodPost, "/api/sdk/agents", 201, AgentSession{ID: "as_sv"})
+
+	_, err := ts.client().CreateAgentSession(context.Background(), CreateAgentSessionInput{
+		Title:       "with vars",
+		SessionVars: map[string]string{"jwt": "tok", "tenant_id": "t1"},
+	})
+	assertNoError(t, err)
+
+	req := ts.lastRequest(t)
+	var body map[string]any
+	if err := json.Unmarshal([]byte(req.Body), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	sv, ok := body["session_vars"].(map[string]any)
+	if !ok {
+		t.Fatalf("session_vars missing or wrong type: %v", body["session_vars"])
+	}
+	assertEqual(t, "jwt", sv["jwt"], "tok")
+	assertEqual(t, "tenant_id", sv["tenant_id"], "t1")
+
+	// Now the omitempty path — no SessionVars → key absent.
+	ts2 := newTestServer(t)
+	ts2.on(http.MethodPost, "/api/sdk/agents", 201, AgentSession{ID: "as_no_sv"})
+	_, err = ts2.client().CreateAgentSession(context.Background(), CreateAgentSessionInput{
+		Title: "without vars",
+	})
+	assertNoError(t, err)
+	req2 := ts2.lastRequest(t)
+	if json.Valid([]byte(req2.Body)) {
+		var b map[string]any
+		_ = json.Unmarshal([]byte(req2.Body), &b)
+		if _, present := b["session_vars"]; present {
+			t.Fatalf("omitempty broken: session_vars present in payload %s", req2.Body)
+		}
+	}
+}
+
 func TestListAgentSessions(t *testing.T) {
 	ts := newTestServer(t)
 	ts.on(http.MethodGet, "/api/sdk/agents", 200, map[string]interface{}{

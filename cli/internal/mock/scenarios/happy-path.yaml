@@ -1,0 +1,38 @@
+name: happy-path
+description: >
+  Agent run streams a clean think → execute_js → response → done
+  sequence. The event types match tavora-sdk-go's EventType* constants
+  so the SDK's parseSSEStream decodes each into a usable AgentEvent.
+
+# Delays are cumulative from stream start: 100ms, 350ms, 600ms, ...
+sse:
+  - delay: 100ms
+    type: sandbox_event
+    data:
+      content: "Thinking about the request..."
+  - delay: 250ms
+    type: execute_js
+    data:
+      content: "console.log('hello from mock')"
+      tool: execute_js
+  - delay: 250ms
+    type: execute_js_result
+    data:
+      content: "hello from mock"
+      result: "hello from mock"
+  - delay: 250ms
+    type: response
+    data:
+      content: "Hello from the tavora-mock happy-path scenario."
+      tokens:
+        prompt: 120
+        completion: 8
+  - delay: 100ms
+    type: done
+    data:
+      summary:
+        session_id: "mock-session-happy-path"
+        steps: 2
+        tokens:
+          prompt: 120
+          completion: 8

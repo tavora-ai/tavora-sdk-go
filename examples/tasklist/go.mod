@@ -1,6 +1,6 @@
 module github.com/tavora-ai/tavora-sdk-go/examples/tasklist
 
-go 1.25.0
+go 1.25.7
 
 require (
 	github.com/go-chi/chi/v5 v5.1.0

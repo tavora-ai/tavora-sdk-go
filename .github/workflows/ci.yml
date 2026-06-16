@@ -15,7 +15,16 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
-      - name: Vet
+      - name: Vet (sdk)
         run: go vet ./...
-      - name: Test
+      - name: Test (sdk)
+        run: go test ./...
+      # cli/ is a separate module (heavy TUI deps quarantined there);
+      # ./... from the root does not reach it, so test it explicitly.
+      # It builds against the in-tree SDK via `replace => ../`.
+      - name: Vet (cli)
+        working-directory: cli
+        run: go vet ./...
+      - name: Test (cli)
+        working-directory: cli
         run: go test ./...

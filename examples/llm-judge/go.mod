@@ -1,6 +1,6 @@
 module github.com/tavora-ai/tavora-sdk-go/examples/llm-judge
 
-go 1.25.0
+go 1.25.7
 
 require google.golang.org/genai v1.55.0
 
