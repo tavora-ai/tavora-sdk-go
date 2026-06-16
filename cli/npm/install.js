@@ -50,7 +50,9 @@ if (!artifact) {
   process.exit(1);
 }
 
-const releaseURL = `https://github.com/tavora-ai/tavora-sdk-go/releases/download/v${VERSION}/${artifact.archive}`;
+// The CLI releases on `cli/v*` tags (the SDK in the same repo owns the
+// bare `v*` tags), so the Release download path is prefixed `cli/`.
+const releaseURL = `https://github.com/tavora-ai/tavora-sdk-go/releases/download/cli/v${VERSION}/${artifact.archive}`;
 const binDir = path.join(__dirname, 'bin');
 const binPath = path.join(binDir, artifact.exe);
 

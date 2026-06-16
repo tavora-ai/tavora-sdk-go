@@ -1,21 +1,23 @@
 # goreleaser config for the tavora CLI (cli/ module of tavora-sdk-go).
 #
+# ⚠️ LOCAL SNAPSHOT SMOKE TEST ONLY — this does NOT drive real releases.
+# Actual CLI releases run from .github/workflows/cli-release.yml (plain
+# shell), because the CLI releases on `cli/v*` tags and goreleaser's
+# monorepo tag-prefix support (to derive a version from a prefixed,
+# non-semver tag) is a GoReleaser *Pro* feature. The OSS binary rejects
+# a `cli/v*` tag with "current tag is not semver". Keep this config in
+# sync with cli-release.yml's build matrix when either changes.
+#
+# To re-home releases here in future, the path is GoReleaser Pro
+# (`monorepo: { tag_prefix: cli/, dir: cli }`), which also unlocks the
+# Homebrew `brews:` automation stubbed out at the bottom of this file.
+#
 # Single binary (`tavora`) — the TUI is the `tavora tui` subcommand,
-# not a separate binary. Targets the four common host shapes; CGO
-# stays off so `go install`-equivalent users get the same artifact
-# they would build locally.
+# not a separate binary. Targets the common host shapes; CGO stays off
+# so users get the same artifact they would build locally.
 #
-# Cut a release:
-#   git tag v0.1.0
-#   git push --tags
-#   # GitHub Action (release.yml) runs `goreleaser release` and uploads.
-#
-# Local smoke test (no tag, no upload):
-#   goreleaser release --snapshot --clean
-#
-# Homebrew tap is wired up but disabled by default — uncomment the
-# `brews:` block and create a `homebrew-tap` repo under tavora-ai
-# when you want auto-PRs of the formula.
+# Local snapshot build (no tag, no upload), from the repo root:
+#   cd cli && goreleaser release --snapshot --clean
 
 version: 2
 

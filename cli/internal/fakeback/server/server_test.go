@@ -136,7 +136,10 @@ func TestListFilterByFieldEquality(t *testing.T) {
 	if len(cards) != 2 {
 		t.Errorf("got %d cards, want 2", len(cards))
 	}
-	resp2, _ := http.Get(ts.URL + "/cards?listId=NEVER")
+	resp2, err := http.Get(ts.URL + "/cards?listId=NEVER")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
 	defer resp2.Body.Close()
 	cards = nil
 	_ = json.NewDecoder(resp2.Body).Decode(&cards)
@@ -222,7 +225,10 @@ func TestAdminResetRestoresSeedState(t *testing.T) {
 	resp.Body.Close()
 
 	// c1 is back.
-	resp, _ = http.Get(ts.URL + "/cards/c1")
+	resp, err = http.Get(ts.URL + "/cards/c1")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("status after reset = %d, want 200", resp.StatusCode)
@@ -231,7 +237,10 @@ func TestAdminResetRestoresSeedState(t *testing.T) {
 
 func TestUnknownResourceReturns404(t *testing.T) {
 	ts := newFakeback(t, sampleDB)
-	resp, _ := http.Get(ts.URL + "/widgets")
+	resp, err := http.Get(ts.URL + "/widgets")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", resp.StatusCode)
@@ -658,7 +667,10 @@ func TestScenarioUnknownNameReturns400(t *testing.T) {
 	})
 	reg, _ := scenarios.LoadDir(dir)
 	ts := newFakebackEverything(t, sampleDB, nil, nil, reg)
-	resp, _ := http.Get(ts.URL + "/boards?scenario=does-not-exist")
+	resp, err := http.Get(ts.URL + "/boards?scenario=does-not-exist")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", resp.StatusCode)
@@ -674,7 +686,10 @@ func TestAdminScenarioActivateAndList(t *testing.T) {
 	ts := newFakebackEverything(t, sampleDB, nil, nil, reg)
 
 	// GET list.
-	resp, _ := http.Get(ts.URL + "/_admin/scenarios")
+	resp, err := http.Get(ts.URL + "/_admin/scenarios")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
 	defer resp.Body.Close()
 	var body map[string]any
 	_ = json.NewDecoder(resp.Body).Decode(&body)
@@ -684,8 +699,11 @@ func TestAdminScenarioActivateAndList(t *testing.T) {
 	}
 
 	// Activate via POST.
-	resp2, _ := http.Post(ts.URL+"/_admin/scenarios/activate", "application/json",
+	resp2, err := http.Post(ts.URL+"/_admin/scenarios/activate", "application/json",
 		strings.NewReader(`{"name":"foo"}`))
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
 	defer resp2.Body.Close()
 	if resp2.StatusCode != http.StatusOK {
 		t.Errorf("activate status = %d, want 200", resp2.StatusCode)
