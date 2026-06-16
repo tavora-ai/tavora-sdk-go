@@ -35,7 +35,10 @@ CLI:
   (no binding → server falls back to the project's prod deployment)`,
 }
 
-var envSlugFlag string
+var (
+	envSlugFlag    string
+	envProjectFlag string
+)
 
 // resolveEnvDeploymentSlug picks the slug the env/secret subcommands
 // should operate against. Shared by both command trees so the
@@ -72,11 +75,15 @@ var envListCmd = &cobra.Command{
 		if client == nil {
 			return errors.New("no API client configured — run `tavora login`")
 		}
+		project, err := resolveProjectName(envProjectFlag)
+		if err != nil {
+			return err
+		}
 		slug, err := resolveEnvDeploymentSlug()
 		if err != nil {
 			return err
 		}
-		entries, err := client.ListDeploymentEnv(cmd.Context(), slug)
+		entries, err := client.ListDeploymentEnv(cmd.Context(), project, slug)
 		if err != nil {
 			return err
 		}
@@ -159,12 +166,16 @@ func putDeploymentEnv(cmd *cobra.Command, args []string, isSecret bool) error {
 	if client == nil {
 		return errors.New("no API client configured — run `tavora login`")
 	}
+	project, err := resolveProjectName(envProjectFlag)
+	if err != nil {
+		return err
+	}
 	slug, err := resolveEnvDeploymentSlug()
 	if err != nil {
 		return err
 	}
 	key, value := args[0], args[1]
-	red, err := client.PutDeploymentEnv(cmd.Context(), slug, key, tavora.SetDeploymentEnvInput{
+	red, err := client.PutDeploymentEnv(cmd.Context(), project, slug, key, tavora.SetDeploymentEnvInput{
 		Value:    value,
 		IsSecret: isSecret,
 	})
@@ -192,11 +203,15 @@ func getDeploymentEnv(cmd *cobra.Command, args []string) error {
 	if client == nil {
 		return errors.New("no API client configured — run `tavora login`")
 	}
+	project, err := resolveProjectName(envProjectFlag)
+	if err != nil {
+		return err
+	}
 	slug, err := resolveEnvDeploymentSlug()
 	if err != nil {
 		return err
 	}
-	res, err := client.GetDeploymentEnv(cmd.Context(), slug, args[0])
+	res, err := client.GetDeploymentEnv(cmd.Context(), project, slug, args[0])
 	if err != nil {
 		return err
 	}
@@ -216,12 +231,16 @@ func deleteDeploymentEnv(cmd *cobra.Command, args []string) error {
 	if client == nil {
 		return errors.New("no API client configured — run `tavora login`")
 	}
+	project, err := resolveProjectName(envProjectFlag)
+	if err != nil {
+		return err
+	}
 	slug, err := resolveEnvDeploymentSlug()
 	if err != nil {
 		return err
 	}
 	key := args[0]
-	if err := client.DeleteDeploymentEnv(cmd.Context(), slug, key); err != nil {
+	if err := client.DeleteDeploymentEnv(cmd.Context(), project, slug, key); err != nil {
 		return err
 	}
 	if isJSON() {
@@ -238,6 +257,8 @@ func deleteDeploymentEnv(cmd *cobra.Command, args []string) error {
 func init() {
 	envCmd.PersistentFlags().StringVar(&envSlugFlag, "deployment", "",
 		"deployment slug (overrides TAVORA_DEPLOYMENT and tavora/.env.local)")
+	envCmd.PersistentFlags().StringVar(&envProjectFlag, "project", "",
+		"project the deployment belongs to (defaults to the local tavora/ manifest)")
 
 	envCmd.AddCommand(envListCmd)
 	envCmd.AddCommand(envPutCmd)

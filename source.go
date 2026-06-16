@@ -2,6 +2,7 @@ package tavora
 
 import (
 	"context"
+	"net/url"
 	"time"
 )
 
@@ -30,12 +31,8 @@ type SourceAgent struct {
 // SourceSyncManifest is the payload `tavora dev` (or any other
 // SourceSync caller) sends to the server on every debounced change.
 // The CLI builds it; the server persists a dev draft from it.
-//
-// Environment is the per-developer env id (server-managed; the CLI
-// leaves it blank to mean "the API key's default dev environment").
 type SourceSyncManifest struct {
 	Project     string        `json:"project"`
-	Environment string        `json:"environment,omitempty"`
 	SourceHash  string        `json:"sourceHash"`
 	Agents      []SourceAgent `json:"agents"`
 	GeneratedAt time.Time     `json:"generatedAt"`
@@ -43,9 +40,9 @@ type SourceSyncManifest struct {
 
 // SourceSyncResult is what the server returns after persisting the
 // dev draft. DraftHash matches the manifest's SourceHash on a
-// successful round-trip. ServerErrors carry the AI-friendly error
-// payloads from server-side validation (see
-// SourceValidationIssue). On a 200 response ServerErrors is nil.
+// successful round-trip. ServerIssues carry the AI-friendly warnings
+// from server-side validation (see SourceValidationIssue); a fatal
+// issue surfaces as a 422 APIError instead.
 type SourceSyncResult struct {
 	DraftHash    string                  `json:"draftHash"`
 	Agents       []SourceSyncAgentResult `json:"agents"`
@@ -65,9 +62,8 @@ type SourceSyncAgentResult struct {
 
 // SourceValidationIssue mirrors the AI-friendly Issue type the CLI
 // produces locally. The server-side validator returns these for any
-// problem that requires its authority (missing index, model
-// unavailable, secretRef not declared, tier limits). See the v0
-// concept doc, §Validation.
+// problem that requires its authority (missing project, no agents,
+// duplicate ids). Severity is "fatal" or "warning".
 type SourceValidationIssue struct {
 	File     string `json:"file,omitempty"`
 	Line     int    `json:"line,omitempty"`
@@ -78,52 +74,14 @@ type SourceValidationIssue struct {
 	Severity string `json:"severity"`
 }
 
-// SourceDeployResult is what the server returns after promoting a
-// dev draft to a published version. One entry per agent the deploy
-// covered.
-type SourceDeployResult struct {
-	Version      string              `json:"version"`
-	Agents       []DeployedAgentInfo `json:"agents"`
-	DeployedAt   time.Time           `json:"deployedAt"`
-	ServerIssues []SourceValidationIssue `json:"serverIssues,omitempty"`
-}
-
-type DeployedAgentInfo struct {
-	LocalID   string `json:"localId"`
-	AgentID   string `json:"agentId"`
-	VersionID string `json:"versionId"`
-	Semver    string `json:"semver"`
-}
-
-// SourceExport is the payload `tavora pull` consumes — the inverse
-// of SourceSyncManifest. Reuses the same file shape so a round-trip
-// is symmetric.
-type SourceExport struct {
-	Project string        `json:"project"`
-	Agents  []SourceAgent `json:"agents"`
-}
-
-// SourceDiff is what `tavora diff` returns — paths that differ and
-// the side they differ on. Empty Paths means "in sync".
-type SourceDiff struct {
-	InSync bool             `json:"inSync"`
-	Paths  []SourceDiffPath `json:"paths"`
-}
-
-type SourceDiffPath struct {
-	Path  string `json:"path"`
-	State string `json:"state"` // "local-only" | "server-only" | "changed"
-}
-
 // SourceSync upserts a dev draft from the supplied manifest.
 //
 // Endpoint: PUT /api/sdk/source-sync
 //
-// The server validates the manifest, persists a single
-// (agent, environment, kind='draft') row per agent in
-// agent_versions, and returns the draft hash. The CLI uses the hash
-// to confirm the round-trip and to drive the per-agent local→server
-// id mapping in SourceSyncResult.Agents.
+// The server validates the manifest, upserts one agents row per local
+// id, and inserts a draft row carrying the manifest. The CLI uses the
+// returned hash to confirm the round-trip and the per-agent
+// local→server id mapping in SourceSyncResult.Agents.
 func (c *Client) SourceSync(ctx context.Context, manifest SourceSyncManifest) (*SourceSyncResult, error) {
 	var out SourceSyncResult
 	if err := c.put(ctx, "/api/sdk/source-sync", manifest, &out); err != nil {
@@ -132,31 +90,38 @@ func (c *Client) SourceSync(ctx context.Context, manifest SourceSyncManifest) (*
 	return &out, nil
 }
 
-// SourceValidate runs the server-side validator against a manifest
-// without persisting anything. Useful for CI dry-runs and for the
-// `tavora deploy --dry-run` flag.
-//
-// Endpoint: POST /api/sdk/source-validate
-func (c *Client) SourceValidate(ctx context.Context, manifest SourceSyncManifest) ([]SourceValidationIssue, error) {
-	var out struct {
-		Issues []SourceValidationIssue `json:"issues"`
-	}
-	if err := c.post(ctx, "/api/sdk/source-validate", manifest, &out); err != nil {
-		return nil, err
-	}
-	return out.Issues, nil
+// SourceDeployInput is the body of SourceDeploy. A deploy is
+// project-atomic — it cuts one release spanning every agent in the
+// project, so there is no per-agent selector.
+type SourceDeployInput struct {
+	Project string `json:"project"`
 }
 
-// SourceDeploy promotes the most recent dev draft for the given
-// project to an immutable published version. The server reads the
-// latest draft per agent, validates, and appends a kind='published'
-// row. Atomically updates the production routing pointer.
+// SourceDeployResult is what the server returns after cutting an
+// immutable project RELEASE — a snapshot of every agent's latest draft.
+// The caller's personal dev deployment is repointed at the new release.
+type SourceDeployResult struct {
+	ReleaseID     string             `json:"releaseId"`
+	ReleaseNumber int64              `json:"releaseNumber"`
+	Agents        []ReleaseAgentInfo `json:"agents"`
+	DeployedAt    time.Time          `json:"deployedAt"`
+}
+
+// ReleaseAgentInfo is one agent captured in a release — the draft
+// snapshot the release pinned for that agent.
+type ReleaseAgentInfo struct {
+	LocalID    string `json:"localId"`
+	AgentID    string `json:"agentId"`
+	DraftID    string `json:"draftId"`
+	SourceHash string `json:"sourceHash"`
+}
+
+// SourceDeploy cuts an immutable project release from every agent's
+// latest synced draft, and points the caller's dev deployment at it.
+// The typical inner loop is `tavora dev` (sync drafts) → `tavora deploy`
+// (cut a release). Release numbers auto-increment per project from 1.
 //
 // Endpoint: POST /api/sdk/source-deploy
-//
-// Project must match the manifest the draft was synced with.
-// AgentID is optional — pass to deploy a single agent (the
-// "per-agent escape hatch" called out in the concept doc).
 func (c *Client) SourceDeploy(ctx context.Context, input SourceDeployInput) (*SourceDeployResult, error) {
 	var out SourceDeployResult
 	if err := c.post(ctx, "/api/sdk/source-deploy", input, &out); err != nil {
@@ -165,96 +130,66 @@ func (c *Client) SourceDeploy(ctx context.Context, input SourceDeployInput) (*So
 	return &out, nil
 }
 
-// SourceDeployInput is the body of SourceDeploy.
-type SourceDeployInput struct {
-	Project     string `json:"project"`
-	Environment string `json:"environment,omitempty"`
-	// LocalAgentID limits the deploy to a single agent. Empty
-	// deploys all agents in the project.
-	LocalAgentID string `json:"localAgentId,omitempty"`
-	// RunEvals overrides the agent.jsonc deploy.runEvals setting.
-	// Tri-state: nil = leave to agent.jsonc, &true = force run,
-	// &false = skip even if agent.jsonc requested it.
-	RunEvals *bool `json:"runEvals,omitempty"`
+// SourcePromoteInput is the body of SourcePromote. To is the target
+// environment, "staging" or "prod". ReleaseNumber is optional — omit to
+// promote the latest release, or set it to pin (or roll back to) a
+// specific release. Promotion is project-atomic (the whole agent set
+// moves together), so there is no per-agent selector.
+type SourcePromoteInput struct {
+	Project       string `json:"project"`
+	To            string `json:"to"`
+	ReleaseNumber *int64 `json:"releaseNumber,omitempty"`
 }
 
-// SourceExport returns the latest server-side state for the given
-// project as a SourceExport. The CLI's `tavora pull` writes the
-// returned files to disk.
+// SourcePromoteResult is what the server returns after repointing an
+// environment at a project release.
+type SourcePromoteResult struct {
+	To             string    `json:"to"`
+	DeploymentSlug string    `json:"deploymentSlug"`
+	ReleaseID      string    `json:"releaseId"`
+	ReleaseNumber  int64     `json:"releaseNumber"`
+	PromotedAt     time.Time `json:"promotedAt"`
+}
+
+// SourcePromote moves an environment's (staging or prod) release pointer
+// for the whole project — the Convex-style "promote a release" step,
+// atomic across every agent. Staging is auto-created on first promote;
+// prod is auto-resolved.
 //
-// Endpoint: GET /api/sdk/source-export?project=<name>
-func (c *Client) SourceExport(ctx context.Context, project string) (*SourceExport, error) {
-	var out SourceExport
-	if err := c.get(ctx, "/api/sdk/source-export?project="+project, &out); err != nil {
+// Endpoint: POST /api/sdk/source-promote
+func (c *Client) SourcePromote(ctx context.Context, input SourcePromoteInput) (*SourcePromoteResult, error) {
+	var out SourcePromoteResult
+	if err := c.post(ctx, "/api/sdk/source-promote", input, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-// SourceRenameInput is the body of SourceRename. The verb tells the
-// server "I changed `agent.jsonc:id` from old to new — preserve the
-// binding"; without it the next sync looks like a delete + create.
-type SourceRenameInput struct {
-	Project    string `json:"project"`
-	OldLocalID string `json:"oldLocalId"`
-	NewLocalID string `json:"newLocalId"`
+// SourceStatus reports the project's latest release and the release each
+// of its dev/staging/prod environments currently serves — the data
+// behind `tavora status`. Promote state is project-wide in the release
+// model, so the version numbers live on the top level, not per agent.
+type SourceStatus struct {
+	Project string            `json:"project"`
+	Latest  int64             `json:"latest"`
+	Dev     *int64            `json:"dev,omitempty"`
+	Staging *int64            `json:"staging,omitempty"`
+	Prod    *int64            `json:"prod,omitempty"`
+	Agents  []StatusAgentInfo `json:"agents"`
 }
 
-type SourceRenameResult struct {
-	AgentID    string `json:"agentId"`
-	OldLocalID string `json:"oldLocalId"`
-	NewLocalID string `json:"newLocalId"`
-}
-
-// SourceRename updates the code-first local_id of an existing agent.
-//
-// Endpoint: POST /api/sdk/source-rename
-//
-// 409 if NewLocalID already exists in the project; 404 if
-// OldLocalID isn't found.
-func (c *Client) SourceRename(ctx context.Context, input SourceRenameInput) (*SourceRenameResult, error) {
-	var out SourceRenameResult
-	if err := c.post(ctx, "/api/sdk/source-rename", input, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// SourceDeleteInput is the body of SourceDelete. Force must be true;
-// the server returns "force_required" otherwise. Cascades to
-// agent_versions, sessions, eval runs.
-type SourceDeleteInput struct {
-	Project string `json:"project"`
+// StatusAgentInfo is one agent in the project, for the status display.
+type StatusAgentInfo struct {
 	LocalID string `json:"localId"`
-	Force   bool   `json:"force"`
-}
-
-type SourceDeleteResult struct {
 	AgentID string `json:"agentId"`
-	LocalID string `json:"localId"`
-	Deleted bool   `json:"deleted"`
 }
 
-// SourceDelete destroys an agent that was source-managed and all
-// the rows that depend on it. Irreversible.
+// SourceStatus fetches the project-level deployment status.
 //
-// Endpoint: POST /api/sdk/source-delete
-func (c *Client) SourceDelete(ctx context.Context, input SourceDeleteInput) (*SourceDeleteResult, error) {
-	var out SourceDeleteResult
-	if err := c.post(ctx, "/api/sdk/source-delete", input, &out); err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-// SourceDiff returns the differences between the supplied manifest
-// and the latest published version on the server. Drives `tavora
-// diff`.
-//
-// Endpoint: POST /api/sdk/source-diff
-func (c *Client) SourceDiff(ctx context.Context, manifest SourceSyncManifest) (*SourceDiff, error) {
-	var out SourceDiff
-	if err := c.post(ctx, "/api/sdk/source-diff", manifest, &out); err != nil {
+// Endpoint: GET /api/sdk/source-status?project=<name>
+func (c *Client) SourceStatus(ctx context.Context, project string) (*SourceStatus, error) {
+	var out SourceStatus
+	if err := c.get(ctx, "/api/sdk/source-status?project="+url.QueryEscape(project), &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

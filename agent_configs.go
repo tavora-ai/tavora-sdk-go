@@ -131,9 +131,8 @@ func (c *Client) DeleteAgentConfig(ctx context.Context, agentID string) error {
 //
 // UpdateAgentConfig (rename/describe via REST), SetActiveAgentVersion,
 // and CreateAgentVersion (direct version creation) were removed when
-// code-first took over. For renames use SourceRename; for promotion
-// use PublishAgent (UI path) or SourceDeploy (CLI path) — both append
-// a kind='published' row through the same internal path.
+// code-first took over. To cut a version use SourceDeploy; to ship one
+// to an environment use SourcePromote (Convex-style promote).
 
 func (c *Client) ListAgentVersions(ctx context.Context, agentID string) ([]AgentVersion, error) {
 	var out []AgentVersion

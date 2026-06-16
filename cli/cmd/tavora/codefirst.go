@@ -278,6 +278,16 @@ Pass --once to do a single validate + sync (useful for CI). Pass
 		}
 		effectiveNoSync := devNoSync || client == nil
 
+		// Tier 3: ensure the project's dev environment exists so synced
+		// drafts have a home to resolve against. Best-effort — a failure
+		// (offline, legacy backend without the route) shouldn't block the
+		// local watch loop; the sync resolver still handles drafts.
+		if !effectiveNoSync {
+			if _, err := client.EnsureDevDeployment(globalCtx(), p.Manifest.Project); err != nil && devVerbose {
+				status("dev environment ensure skipped: %v", err)
+			}
+		}
+
 		// Mock backends — auto-launch one fakeback HTTP listener per
 		// <project>/mocks/<name>/ folder. Skill authors point
 		// context.backend_url at the printed URLs to iterate against
@@ -327,16 +337,29 @@ func devSlog() *slog.Logger {
 
 var (
 	deployDir    string
-	deployAgent  string
 	deployDryRun bool
+	deployEnv    string
 )
 
 var codefirstDeployCmd = &cobra.Command{
 	Use:   "deploy",
-	Short: "Promote the current dev draft to an immutable published version",
-	Long: `tavora deploy validates the local tavora/ folder, syncs a fresh
-draft, then cuts an immutable published version. Without arguments
-the whole project deploys; pass --agent <id> to deploy just one.
+	Short: "Cut an immutable project release from the current dev drafts",
+	Long: `tavora deploy validates the local tavora/ folder, syncs fresh
+drafts, then cuts a release.
+
+With --env staging it cuts a Tier 3 project release into staging: each
+agent is diffed by source hash, so an unchanged agent keeps its pinned
+version and only changed agents get a new one. The staging pin set
+({agent → version}) is updated atomically. Production is promote-only —
+you reach it by promoting the staging pins, so what ships is exactly what
+you validated.
+
+  tavora deploy --env staging   # cut + pin into staging
+  tavora promote --to prod      # ship the staging pin set to prod
+  tavora ship                   # do both in one step
+
+Without --env it cuts the legacy project-wide release and repoints your
+dev environment at it.
 
 --dry-run skips the deploy step; useful as a standalone validate.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -373,17 +396,49 @@ the whole project deploys; pass --agent <id> to deploy just one.
 			}
 			return fmt.Errorf("pre-deploy sync failed: %w", err)
 		}
+		// Tier 3 path: `--env staging` cuts a project release into
+		// staging, pinning one version per agent (unchanged agents keep
+		// their version, changed agents get a new one). Production is
+		// promote-only — `--env prod` is rejected with a pointer to
+		// `tavora promote --to prod`, so what ships is exactly what was
+		// validated in staging.
+		if env := strings.TrimSpace(deployEnv); env != "" {
+			if env == "prod" {
+				return fmt.Errorf("production is promote-only — cut to staging then ship it:\n  tavora deploy --env staging\n  tavora promote --to prod   (or `tavora ship` to do both)")
+			}
+			if env != "staging" {
+				return fmt.Errorf("--env must be \"staging\" (got %q); production is reached via `tavora promote --to prod`", deployEnv)
+			}
+			rel, err := client.CutRelease(globalCtx(), p.Manifest.Project)
+			if err != nil {
+				return err
+			}
+			if isJSON() {
+				return printJSON(rel)
+			}
+			for _, pin := range rel.Pins {
+				status("  • %s → v%d", pin.AgentID, pin.VersionNumber)
+			}
+			status("cut staging release: %d agent(s) pinned in %s", len(rel.Pins), rel.Deployment.Slug)
+			status("ship it: `tavora promote --to prod`  (or `tavora ship`)")
+			return nil
+		}
+
 		input := tavora.SourceDeployInput{
-			Project:      p.Manifest.Project,
-			LocalAgentID: deployAgent,
+			Project: p.Manifest.Project,
 		}
 		out, err := client.SourceDeploy(globalCtx(), input)
 		if err != nil {
 			return err
 		}
-		for _, a := range out.Agents {
-			status("deployed %s → %s (version %s, semver %s)", a.LocalID, a.AgentID, a.VersionID, a.Semver)
+		if isJSON() {
+			return printJSON(out)
 		}
+		for _, a := range out.Agents {
+			status("  • %s → %s (%s)", a.LocalID, a.AgentID, short(a.SourceHash))
+		}
+		status("cut release %d spanning %d agent(s)", out.ReleaseNumber, len(out.Agents))
+		status("your dev environment now runs release %d — `tavora promote --to staging` (or prod) to ship it", out.ReleaseNumber)
 		return nil
 	},
 }
@@ -702,7 +757,6 @@ func globalCtx() context.Context {
 func toSDKManifest(local SyncManifest, p *source.Project) tavora.SourceSyncManifest {
 	out := tavora.SourceSyncManifest{
 		Project:     local.Project,
-		Environment: local.Environment,
 		SourceHash:  local.SourceHash,
 		GeneratedAt: local.GeneratedAt,
 	}
@@ -794,8 +848,8 @@ func init() {
 	codefirstBindCmd.Flags().StringVar(&bindDir, "dir", "", "Project directory containing tavora.jsonc (default: search up from cwd)")
 
 	codefirstDeployCmd.Flags().StringVar(&deployDir, "dir", "", "Project directory containing tavora.jsonc")
-	codefirstDeployCmd.Flags().StringVar(&deployAgent, "agent", "", "Deploy a single agent by id (default: all agents)")
 	codefirstDeployCmd.Flags().BoolVar(&deployDryRun, "dry-run", false, "Validate and build the manifest, but skip the deploy call")
+	codefirstDeployCmd.Flags().StringVar(&deployEnv, "env", "", "Cut a release into staging (Tier 3 pin model). Production is promote-only: `tavora promote --to prod`.")
 
 	codefirstConfigCmd.AddCommand(configShowCmd)
 

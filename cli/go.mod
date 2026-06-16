@@ -1,6 +1,6 @@
 module github.com/tavora-ai/tavora-sdk-go/cli
 
-go 1.25.0
+go 1.25.7
 
 // Monorepo: build the CLI against the SDK in the same tree rather than
 // a published tag. The version below is a placeholder satisfied by replace.

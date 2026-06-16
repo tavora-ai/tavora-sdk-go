@@ -67,11 +67,15 @@ var secretListCmd = &cobra.Command{
 		if client == nil {
 			return errors.New("no API client configured — run `tavora login`")
 		}
+		project, err := resolveProjectName(envProjectFlag)
+		if err != nil {
+			return err
+		}
 		slug, err := resolveEnvDeploymentSlug()
 		if err != nil {
 			return err
 		}
-		entries, err := client.ListDeploymentEnv(cmd.Context(), slug)
+		entries, err := client.ListDeploymentEnv(cmd.Context(), project, slug)
 		if err != nil {
 			return err
 		}
@@ -119,6 +123,7 @@ func init() {
 	// command trees, and two persistent flags over the same struct
 	// var would just be confusing.
 	secretCmd.PersistentFlags().AddFlag(envCmd.PersistentFlags().Lookup("deployment"))
+	secretCmd.PersistentFlags().AddFlag(envCmd.PersistentFlags().Lookup("project"))
 
 	secretCmd.AddCommand(secretPutCmd)
 	secretCmd.AddCommand(secretGetCmd)

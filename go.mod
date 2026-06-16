@@ -1,6 +1,6 @@
 module github.com/tavora-ai/tavora-sdk-go
 
-go 1.25.0
+go 1.25.7
 
 require github.com/go-resty/resty/v2 v2.17.2
 

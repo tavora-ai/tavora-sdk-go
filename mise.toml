@@ -1,0 +1,126 @@
+# tavora-sdk-go — Go SDK + the `tavora` CLI.
+#
+# mise pins the full toolchain to exact versions (reproducible builds,
+# matches studio-platform's Go 1.25.7) and mirrors cli/Taskfile.yml as
+# `mise run` tasks. The CLI is a nested module under cli/, so tasks set
+# `dir = "cli"`.
+#
+#   mise install            # fetch the pinned toolchain
+#   mise tasks              # list tasks
+#   mise run build          # build the tavora binary
+#   mise run demo           # end-to-end deploy→promote→status walkthrough
+
+[tools]
+go = "1.25.7"
+# go.work is not used here; each module resolves the local SDK via a
+# replace directive in cli/go.mod.
+task = "3.51.1"           # the legacy Taskfile runner (cli/Taskfile.yml)
+goreleaser = "2.16.0"     # release builds (cli/.goreleaser.yml)
+"golangci-lint" = "2.12.2"
+
+# ---- build / test (run in the cli module) ----
+
+[tasks.build]
+description = "Build the tavora CLI binary (cli/tavora)"
+dir = "cli"
+run = "go build -o tavora ./cmd/tavora"
+
+[tasks.install]
+description = "go install the tavora binary into $GOBIN"
+dir = "cli"
+run = "go install ./cmd/tavora"
+
+[tasks.test]
+description = "Run SDK + CLI tests (root module + cli module)"
+run = '''
+set -euo pipefail
+echo "=== sdk (root) ==="; go test ./...
+echo "=== cli ===";        (cd cli && go test ./...)
+'''
+
+[tasks.tidy]
+description = "go mod tidy in the SDK + CLI modules"
+run = '''
+set -euo pipefail
+go mod tidy
+(cd cli && go mod tidy)
+'''
+
+[tasks.fmt]
+description = "gofmt -w over both modules"
+run = "gofmt -w . && (cd cli && gofmt -w .)"
+
+[tasks.vet]
+description = "go vet the SDK + CLI"
+run = '''
+set -euo pipefail
+go vet ./...
+(cd cli && go vet ./...)
+'''
+
+[tasks.lint]
+description = "golangci-lint over the SDK + CLI"
+run = '''
+set -euo pipefail
+golangci-lint run
+(cd cli && golangci-lint run)
+'''
+
+# ---- run from source ----
+
+[tasks.cli]
+description = "Run the CLI from source. Pass args after `--`."
+dir = "cli"
+run = "go run ./cmd/tavora"
+
+[tasks.tui]
+description = "Run the agent TUI from source (`tavora tui`)"
+dir = "cli"
+run = "go run ./cmd/tavora tui"
+
+# ---- code-first workflow ----
+
+[tasks."cf:init"]
+description = "tavora init — scaffold ./tavora/"
+dir = "cli"
+run = "go run ./cmd/tavora init"
+
+[tasks."cf:dev"]
+description = "tavora dev — watch + validate + sync the local tavora/ folder"
+dir = "cli"
+run = "go run ./cmd/tavora dev"
+
+[tasks."cf:deploy"]
+description = "tavora deploy — cut an immutable published version"
+dir = "cli"
+run = "go run ./cmd/tavora deploy"
+
+# ---- fake backends (offline iteration) ----
+
+[tasks."mock:run"]
+description = "Run the tavora-mock fake server"
+dir = "cli"
+run = "go run ./cmd/tavora-mock"
+
+[tasks."fakeback:run"]
+description = "Run the tavora-fake-backend stub (needs -root <folder>)"
+dir = "cli"
+run = "go run ./cmd/tavora-fake-backend"
+
+# ---- release ----
+
+[tasks."release:check"]
+description = "Lint the goreleaser config without building"
+dir = "cli"
+run = "goreleaser check"
+
+[tasks."release:snapshot"]
+description = "Local snapshot build (no tag) — artifacts in cli/dist"
+dir = "cli"
+run = "goreleaser release --snapshot --clean"
+
+# ---- demo ----
+
+[tasks.demo]
+description = "End-to-end deploy→promote→status walkthrough (needs TAVORA_URL + TAVORA_API_KEY)"
+run = "bash cli/scripts/demo.sh"
